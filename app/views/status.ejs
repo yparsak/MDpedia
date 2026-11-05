@@ -1,0 +1,48 @@
+<%- include('partials/header') %>
+<% const healthy = status.db === 'ok' && status.schema === 'ok'; %>
+
+<h1><%= healthy ? 'Wiki is running' : 'Wiki is running, but not ready' %></h1>
+
+<% if (status.db === 'unreachable') { %>
+  <p class="notice notice-error">
+    The wiki cannot reach its database right now. This page keeps checking: reload it
+    once MariaDB is back, and no restart is needed.
+  </p>
+<% } else if (status.schema === 'behind') { %>
+  <p class="notice notice-warn">
+    The database is behind this version of the app. Missing:
+    <% status.missing.forEach(function (file, i) { %><code><%= file %></code><%= i < status.missing.length - 1 ? ', ' : '' %><% }) %>.
+    Run <code>make migrate</code> on the server (it takes a dump first).
+  </p>
+<% } %>
+
+<table class="facts">
+  <tr><th scope="row">App version</th><td><%= version %></td></tr>
+  <tr><th scope="row">Environment</th><td><%= env %></td></tr>
+  <tr>
+    <th scope="row">Database</th>
+    <td>
+      <% if (status.db === 'ok') { %>
+        connected (MariaDB <%= status.serverVersion %>)
+      <% } else { %>
+        unreachable
+      <% } %>
+    </td>
+  </tr>
+  <tr>
+    <th scope="row">Schema version</th>
+    <td>
+      <% if (status.db !== 'ok') { %>
+        unknown
+      <% } else if (status.schemaVersion === null) { %>
+        none applied (expected <%= status.expectedVersion %>)
+      <% } else if (status.schema === 'ok') { %>
+        <%= status.schemaVersion %> (up to date)
+      <% } else { %>
+        <%= status.schemaVersion %> (expected <%= status.expectedVersion %>)
+      <% } %>
+    </td>
+  </tr>
+</table>
+
+<%- include('partials/footer') %>
