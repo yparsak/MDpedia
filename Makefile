@@ -246,7 +246,7 @@ samples-verify:
 	if iconv -f UTF-8 -t UTF-8 $(SAMPLES_DIR)/04-bad-encoding.md >/dev/null 2>&1; then \
 	  echo "  FAIL 04-bad-encoding.md is valid UTF-8; it must not be"; fail=1; \
 	else echo "  ok   04-bad-encoding.md is not valid UTF-8"; fi; \
-	if LC_ALL=C grep -q $$'\\x00' $(SAMPLES_DIR)/04b-null-byte.md 2>/dev/null; then \
+	if [ "$$(wc -c < $(SAMPLES_DIR)/04b-null-byte.md)" -gt "$$(tr -d '\000' < $(SAMPLES_DIR)/04b-null-byte.md | wc -c)" ]; then \
 	  echo "  ok   04b-null-byte.md contains a NUL byte"; \
 	else echo "  FAIL 04b-null-byte.md has no NUL byte"; fail=1; fi; \
 	n=$$(ls -1 $(SAMPLES_DIR)/20-bulk/*.md | wc -l | tr -d ' '); \
