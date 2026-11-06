@@ -2,9 +2,10 @@
 // anything is written, and each failure names its real reason so the admin can
 // fix it: wrong extension, size, null byte, encoding, front matter, title, slug.
 //
-// A new upload always starts unpublished. An `id` or `published` in the
-// uploaded front matter is ignored: the database assigns the id, and nothing in
-// an upload may publish itself.
+// A new upload always starts unpublished. An `id`, `published` or `categories`
+// in the uploaded front matter is ignored: the database assigns the id, nothing
+// in an upload may publish itself, and category ids from another wiki would
+// point at the wrong categories here. Categories are assigned on the doc page.
 
 import path from 'node:path';
 import { SLUG_MAX, SLUG_PATTERN, slugify } from '../public/js/slug.js';
@@ -15,7 +16,7 @@ import { firstHeading, renderMarkdown } from './markdown.js';
 export const TITLE_MAX = 200;
 export const SUMMARY_MAX = 600;
 
-const KNOWN_KEYS = ['id', 'slug', 'title', 'published', 'summary', 'summary_edited'];
+const KNOWN_KEYS = ['id', 'slug', 'title', 'published', 'categories', 'summary', 'summary_edited'];
 
 const fail = (status, ...errors) => ({ ok: false, status, errors });
 

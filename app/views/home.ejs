@@ -2,13 +2,19 @@
 
 <h1>MDpedia</h1>
 
+<% if (categories.length > 0) { %>
+  <h2>Browse by category</h2>
+  <%- include('partials/category-list', { categories: categories }) %>
+<% } %>
+
 <% if (docs.length === 0) { %>
   <p class="muted">No documents have been published yet.</p>
 <% } else { %>
+  <h2>All documents</h2>
   <ul class="doc-list">
     <% docs.forEach(function (d) { %>
       <li>
-        <a href="/wiki/<%= d.slug %>"><%= d.title %></a>
+        <a href="<%= d.url %>"><%= d.title %></a>
         <% if (d.summary) { %><span class="doc-summary muted"><%= d.summary %></span><% } %>
       </li>
     <% }) %>

@@ -1,0 +1,58 @@
+<%- include('../partials/header') %>
+
+<p><a href="/admin/categories">&larr; All categories</a></p>
+
+<h1><%= category.name %></h1>
+
+<% if (notice) { %>
+  <p class="notice notice-<%= notice.kind === 'ok' ? 'ok' : 'warn' %>"><%= notice.text %></p>
+<% } %>
+<% if (errors.length > 0) { %>
+  <div class="notice notice-error" role="alert">
+    <ul>
+      <% errors.forEach(function (e) { %><li><%= e %></li><% }) %>
+    </ul>
+  </div>
+<% } %>
+
+<table class="facts">
+  <tr><th scope="row">Path</th><td><%= category.label %> (<code><%= category.path %></code>)</td></tr>
+  <tr><th scope="row">Id</th><td><%= category.id %></td></tr>
+  <tr><th scope="row">Subcategories</th><td><%= category.subcategoryCount %></td></tr>
+  <tr><th scope="row">Documents</th><td><%= category.docCount %> (any state)</td></tr>
+  <tr><th scope="row">Reader page</th><td><a href="/category/<%= category.path %>">/category/<%= category.path %></a></td></tr>
+</table>
+
+<h2>Name and slug</h2>
+<form class="form form-wide" method="post" action="/admin/categories/<%= category.id %>/edit" autocomplete="off">
+  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+  <label for="name">Name</label>
+  <input id="name" name="name" type="text" value="<%= form.name %>" maxlength="<%= nameMax %>" required>
+  <label for="slug">Slug</label>
+  <input id="slug" name="slug" type="text" value="<%= form.slug %>" maxlength="<%= slugMax %>" required>
+  <p class="field-note">Renaming changes only the display name. Changing the slug changes the URL of this category's page; document links through the old path redirect to the new one.</p>
+  <button type="submit">Save</button>
+</form>
+
+<h2>Move</h2>
+<form class="form form-wide" method="post" action="/admin/categories/<%= category.id %>/move">
+  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+  <label for="parent_id">Parent</label>
+  <select id="parent_id" name="parent_id">
+    <option value="">(top level)</option>
+    <% parents.forEach(function (p) { %><option value="<%= p.id %>"<%= String(p.id) === String(category.parentId) ? ' selected' : '' %>><%= p.label %></option><% }) %>
+  </select>
+  <p class="field-note">The category goes to the end of its new siblings, with everything under it. No document file changes. Document links through the old path redirect to the new one.</p>
+  <button type="submit">Move</button>
+</form>
+
+<h2>Delete</h2>
+<% if (category.subcategoryCount > 0 || category.docCount > 0) { %>
+  <p class="muted">Only an empty category can be deleted. This one has <%= category.subcategoryCount %> subcategories and <%= category.docCount %> documents.</p>
+<% } %>
+<form class="inline-form" method="post" action="/admin/categories/<%= category.id %>/delete">
+  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+  <button type="submit" class="button">Delete category</button>
+</form>
+
+<%- include('../partials/footer') %>

@@ -46,7 +46,7 @@ test('/admin while logged out redirects to the login page', async () => {
 });
 
 test('every admin page redirects when logged out', async () => {
-  for (const path of ['/admin/audit', '/admin/password', '/admin/status', '/admin/docs', '/admin/docs/new', '/admin/docs/1']) {
+  for (const path of ['/admin/audit', '/admin/password', '/admin/status', '/admin/docs', '/admin/docs/new', '/admin/docs/1', '/admin/categories', '/admin/categories/1']) {
     const res = await fetch(`${base}${path}`, { redirect: 'manual' });
     assert.equal(res.status, 303, path);
     assert.equal(res.headers.get('location'), '/admin/login', path);

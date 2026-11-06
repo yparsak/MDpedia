@@ -14,6 +14,12 @@
     <p><a href="/admin/docs">Manage documents</a> or <a href="/admin/docs/new">upload one</a></p>
   </section>
   <section class="card">
+    <h2>Categories</h2>
+    <p><strong><%= categoryCounts.categories %></strong> categories</p>
+    <p><strong><%= categoryCounts.uncategorized %></strong> document<%= categoryCounts.uncategorized === 1 ? '' : 's' %> uncategorized</p>
+    <p><a href="/admin/categories">Edit the category tree</a></p>
+  </section>
+  <section class="card">
     <h2>AI usage</h2>
     <p class="muted">Not available yet. The AI Lab arrives in Phase 6.</p>
   </section>

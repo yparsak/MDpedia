@@ -153,3 +153,19 @@ code { background: #f2f4f5; padding: 0.1em 0.35em; border-radius: 3px; }
 .doc-list li { padding: 0.6rem 0; border-bottom: 1px solid var(--line); }
 .doc-summary { display: block; font-size: 0.95rem; }
 .doc-meta { margin-top: -0.5rem; }
+
+/* Phase 3: categories */
+.breadcrumb { display: flex; flex-wrap: wrap; gap: 0.4rem; color: var(--muted); font-size: 0.9rem; }
+.also-in { margin-top: -0.5rem; }
+.category-list { padding-left: 1.2rem; }
+.log .tree-depth-2 { padding-left: 1.5rem; }
+.log .tree-depth-3 { padding-left: 3rem; }
+.doc-categories { padding-left: 1.2rem; }
+.doc-categories li { padding: 0.15rem 0; }
+.doc-categories .inline-form { margin-left: 0.5rem; }
+.form select {
+  font: inherit;
+  padding: 0.45rem 0.6rem;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+}

@@ -3,10 +3,12 @@ import { loadAdminSession, noStore, requireAdmin, verifyCsrf } from '../middlewa
 import { FIELD, makeLoginToken, verifyLoginToken } from '../services/csrf.js';
 import { createThrottle } from '../services/throttle.js';
 import { recordAudit, listAudit } from '../services/audit.js';
+import { categoryStats } from '../services/categories.js';
 import { countByStatus } from '../services/docs.js';
 import { noticeFrom } from '../services/notices.js';
 import { pageCount, parsePage } from '../services/pagination.js';
 import { getStatus } from '../services/status.js';
+import { adminCategoriesRouter } from './admin-categories.js';
 import { adminDocsRouter } from './admin-docs.js';
 import { findByUsername, normalizeUsername, recordLogin, setPassword } from '../services/admins.js';
 import { hashPassword, passwordProblems, verifyAgainstDummy, verifyPassword } from '../services/passwords.js';
@@ -134,10 +136,12 @@ export function adminRouter({ pool, config, version }) {
   router.get('/', needAdmin, async (req, res) => {
     const { rows } = await listAudit(pool, { limit: 5, offset: 0 });
     const docCounts = await countByStatus(pool);
+    const categoryCounts = await categoryStats(pool);
     res.render('admin/dashboard', {
       title: 'Dashboard',
       notice: noticeFor(req),
       docCounts,
+      categoryCounts,
       sessionExpires: req.session.expiresAt,
       idleMinutes: config.session.idleMinutes,
       recent: rows.map(auditRow),
@@ -187,6 +191,10 @@ export function adminRouter({ pool, config, version }) {
   // -------------------------------------------------------------- documents
 
   router.use('/docs', adminDocsRouter({ pool, config, needAdmin }));
+
+  // ------------------------------------------------------------- categories
+
+  router.use('/categories', adminCategoriesRouter({ pool, config, needAdmin }));
 
   // -------------------------------------------------------- change password
 

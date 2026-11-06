@@ -21,7 +21,7 @@
     <th scope="row">Reader links</th>
     <td>
       <% if (doc.published) { %>
-        <a href="/wiki/<%= doc.slug %>">/wiki/<%= doc.slug %></a>,
+        <a href="<%= readerPath %>"><%= readerPath %></a>,
         <a href="/doc?id=<%= doc.id %>">/doc?id=<%= doc.id %></a>
       <% } else { %>
         <span class="muted">none while the document is not published</span>
@@ -50,6 +50,45 @@
     <input type="hidden" name="_csrf" value="<%= csrfToken %>">
     <button type="submit" class="button"><%= doc.status === 'unpublished' ? 'Publish again' : 'Publish' %></button>
   </form>
+<% } %>
+
+<h2>Categories</h2>
+<% if (categories.length === 0) { %>
+  <p class="muted">Not filed under any category yet.</p>
+<% } else { %>
+  <ol class="doc-categories">
+    <% categories.forEach(function (c) { %>
+      <li>
+        <%= c.label %>
+        <% if (c.primary) { %><span class="badge badge-published">primary</span><% } %>
+        <form class="inline-form" method="post" action="/admin/docs/<%= doc.id %>/categories/move">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+          <input type="hidden" name="category_id" value="<%= c.id %>">
+          <% if (c.canUp) { %><button type="submit" name="direction" value="up" class="link-button">Up</button><% } %>
+          <% if (c.canDown) { %><button type="submit" name="direction" value="down" class="link-button">Down</button><% } %>
+        </form>
+        <form class="inline-form" method="post" action="/admin/docs/<%= doc.id %>/categories/remove">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+          <input type="hidden" name="category_id" value="<%= c.id %>">
+          <button type="submit" class="link-button">Remove</button>
+        </form>
+      </li>
+    <% }) %>
+  </ol>
+<% } %>
+<% if (categoryOptions.length > 0) { %>
+  <form class="form form-wide" method="post" action="/admin/docs/<%= doc.id %>/categories/add">
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <label for="category_id">Add a category</label>
+    <select id="category_id" name="category_id" required>
+      <option value="">Choose a category</option>
+      <% categoryOptions.forEach(function (o) { %><option value="<%= o.id %>"><%= o.label %></option><% }) %>
+    </select>
+    <p class="field-note">Up to <%= categoryMax %>; a further one is refused. The first is the primary category: it sets the breadcrumb and the document's URL.</p>
+    <button type="submit">Add category</button>
+  </form>
+<% } else { %>
+  <p class="field-note">There are no categories to add. <a href="/admin/categories">Create some first</a>.</p>
 <% } %>
 
 <h2>Title</h2>

@@ -2,6 +2,8 @@ import { Router } from 'express';
 import multer from 'multer';
 import { verifyCsrf } from '../middleware/admin-session.js';
 import { recordAudit } from '../services/audit.js';
+import { MAX_DOC_CATEGORIES, checkCategoryIds, getDocCategoryIds, setDocCategories } from '../services/doc-categories.js';
+import { docPath, loadTree, pathLabel } from '../services/categories.js';
 import { DocFileError } from '../services/docfiles.js';
 import {
   STATUS_LABELS,
@@ -25,6 +27,7 @@ const NOTICES = {
   'title-saved': { kind: 'ok', text: 'Title saved. The slug did not change.' },
   'summary-saved': { kind: 'ok', text: 'Summary saved and marked as hand-edited.' },
   'summary-cleared': { kind: 'ok', text: 'Summary cleared.' },
+  'categories-saved': { kind: 'ok', text: 'Categories saved. The first one is the primary category.' },
   unchanged: { kind: 'warn', text: 'Nothing changed.' },
 };
 
@@ -76,10 +79,25 @@ export function adminDocsRouter({ pool, config, needAdmin }) {
       scripts: ['/js/upload.js'],
     });
 
-  const renderDetail = (res, status, doc, { errors = [], notice = null, titleValue, summaryValue } = {}) =>
+  const renderDetail = async (res, status, doc, { errors = [], notice = null, titleValue, summaryValue } = {}) => {
+    const tree = await loadTree(pool);
+    const categoryIds = await getDocCategoryIds(pool, doc.id);
+    const assigned = categoryIds.map((id) => tree.byId.get(id)).filter(Boolean);
     res.status(status).render('admin/doc-detail', {
       title: doc.title,
       doc: docView(doc),
+      readerPath: `/wiki/${docPath(assigned[0] ?? null, doc.slug)}`,
+      categories: assigned.map((n, index) => ({
+        id: n.id,
+        label: pathLabel(n),
+        primary: index === 0,
+        canUp: index > 0,
+        canDown: index < assigned.length - 1,
+      })),
+      categoryOptions: tree.nodes
+        .filter((n) => !categoryIds.includes(n.id))
+        .map((n) => ({ id: n.id, label: `${'\u2014 '.repeat(n.depth - 1)}${n.name}` })),
+      categoryMax: MAX_DOC_CATEGORIES,
       errors,
       notice,
       titleValue: titleValue ?? doc.title,
@@ -88,6 +106,7 @@ export function adminDocsRouter({ pool, config, needAdmin }) {
       summaryMax: SUMMARY_MAX,
       styles: ['/vendor/katex/katex.min.css', '/css/doc.css'],
     });
+  };
 
   // -------------------------------------------------------------------- list
 
@@ -222,6 +241,56 @@ export function adminDocsRouter({ pool, config, needAdmin }) {
       change: () => setSummary(pool, config, req.doc, summary),
       done: summary ? 'summary-saved' : 'summary-cleared',
     });
+  });
+
+  // ------------------------------------------------------------- categories
+
+  // Add, remove and reorder all end in the same place: the new ordered list of
+  // ids is checked against the tree and saved (front matter first).
+  async function changeCategories(req, res, ids, summary) {
+    const checked = checkCategoryIds(ids, await loadTree(pool));
+    if (!checked.ok) return renderDetail(res, 400, req.doc, { errors: checked.errors });
+    return applyChange(req, res, {
+      action: 'doc.categories',
+      summary,
+      change: () => setDocCategories(pool, config, req.doc, ids),
+      done: 'categories-saved',
+    });
+  }
+
+  const categoryIdFrom = (req) => parseId(typeof req.body.category_id === 'string' ? req.body.category_id : '');
+
+  router.post('/:id/categories/add', needAdmin, verifyCsrf, loadDoc, async (req, res) => {
+    const categoryId = categoryIdFrom(req);
+    const current = await getDocCategoryIds(pool, req.doc.id);
+    if (categoryId === null) return renderDetail(res, 400, req.doc, { errors: ['Choose a category to add.'] });
+    if (current.includes(categoryId)) return unchanged(req, res);
+    return changeCategories(req, res, [...current, categoryId], `Added category ${categoryId} to "${req.doc.slug}".`);
+  });
+
+  router.post('/:id/categories/remove', needAdmin, verifyCsrf, loadDoc, async (req, res) => {
+    const categoryId = categoryIdFrom(req);
+    const current = await getDocCategoryIds(pool, req.doc.id);
+    if (categoryId === null || !current.includes(categoryId)) return unchanged(req, res);
+    return changeCategories(
+      req,
+      res,
+      current.filter((id) => id !== categoryId),
+      `Removed category ${categoryId} from "${req.doc.slug}".`,
+    );
+  });
+
+  router.post('/:id/categories/move', needAdmin, verifyCsrf, loadDoc, async (req, res) => {
+    const categoryId = categoryIdFrom(req);
+    const direction = req.body.direction;
+    const current = await getDocCategoryIds(pool, req.doc.id);
+    const from = current.indexOf(categoryId);
+    const to = direction === 'up' ? from - 1 : direction === 'down' ? from + 1 : -1;
+    if (from === -1 || to < 0 || to >= current.length) return unchanged(req, res);
+
+    const ids = [...current];
+    [ids[from], ids[to]] = [ids[to], ids[from]];
+    return changeCategories(req, res, ids, `Changed the category order of "${req.doc.slug}".`);
   });
 
   return router;

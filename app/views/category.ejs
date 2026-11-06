@@ -1,0 +1,25 @@
+<%- include('partials/header') %>
+
+<%- include('partials/breadcrumb', { crumbs: crumbs }) %>
+
+<h1><%= name %></h1>
+
+<% if (subcategories.length > 0) { %>
+  <h2>Subcategories</h2>
+  <%- include('partials/category-list', { categories: subcategories }) %>
+<% } %>
+
+<% if (docs.length > 0) { %>
+  <h2>Documents</h2>
+  <ul class="doc-list">
+    <% docs.forEach(function (d) { %>
+      <li>
+        <a href="<%= d.url %>"><%= d.title %></a>
+        <% if (d.summary) { %><span class="doc-summary muted"><%= d.summary %></span><% } %>
+      </li>
+    <% }) %>
+  </ul>
+  <%- include('partials/pager', { basePath: basePath, page: page, pages: pages }) %>
+<% } %>
+
+<%- include('partials/footer') %>

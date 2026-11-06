@@ -3,9 +3,10 @@
 // page, not a reason to crash.
 
 import fs from 'node:fs/promises';
+import { exportCategories, EXPORT_FILE } from './categories-export.js';
 import { getStatus } from './status.js';
 
-async function checkDirectory(label, dir) {
+async function checkDirectory(label, dir, neededFrom = 'Phase 2') {
   try {
     const stat = await fs.stat(dir);
     if (!stat.isDirectory()) return { level: 'warn', text: `${label}: ${dir} exists but is not a directory`, dev: null };
@@ -13,7 +14,7 @@ async function checkDirectory(label, dir) {
     return { level: 'ok', text: `${label}: ${dir} exists and is writable`, dev: stat.dev };
   } catch (err) {
     const why = err.code === 'ENOENT' ? 'does not exist' : err.code === 'EACCES' ? 'is not writable by this user' : err.code;
-    return { level: 'warn', text: `${label}: ${dir} ${why} (needed from Phase 2)`, dev: null };
+    return { level: 'warn', text: `${label}: ${dir} ${why} (needed from ${neededFrom})`, dev: null };
   }
 }
 
@@ -46,9 +47,19 @@ export async function runSelfCheck(pool, config) {
 
   const docs = await checkDirectory('docs dir', config.paths.docs);
   const staging = await checkDirectory('staging dir', config.paths.staging);
-  lines.push(docs, staging);
+  const data = await checkDirectory('data dir', config.paths.data, 'Phase 3');
+  lines.push(docs, staging, data);
   if (docs.dev !== null && staging.dev !== null && docs.dev !== staging.dev) {
     lines.push({ level: 'warn', text: 'docs and staging are on different filesystems; the atomic rename in Phase 2 will fail' });
+  }
+
+  // Refresh categories.yaml, so a tree seeded with `make seed-categories` is exported without waiting for a change.
+  if (status.schema === 'ok' && data.level === 'ok') {
+    lines.push(
+      (await exportCategories(pool, config))
+        ? { level: 'ok', text: `${EXPORT_FILE}: written to ${config.paths.data}` }
+        : { level: 'warn', text: `${EXPORT_FILE}: could not be written to ${config.paths.data}` },
+    );
   }
 
   return lines;

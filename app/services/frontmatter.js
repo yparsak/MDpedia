@@ -21,13 +21,16 @@ const schema = z
     slug: z.string().max(200).optional(),
     title: z.string().max(500).optional(),
     published: z.boolean().optional(),
+    // Category ids, the first is primary. Strings are tolerated (a bulk import
+    // file may name categories by path, Phase 7) but only ids are ever written.
+    categories: z.array(z.union([z.number().int().positive(), z.string().max(200)])).max(3).optional(),
     summary: z.string().max(5000).optional(),
     summary_edited: z.boolean().optional(),
   })
   .passthrough();
 
 // Written first, in this order, so the files read the same every time.
-const KEY_ORDER = ['id', 'slug', 'title', 'published', 'summary', 'summary_edited'];
+const KEY_ORDER = ['id', 'slug', 'title', 'published', 'categories', 'summary', 'summary_edited'];
 
 export const bodyHash = (body) => crypto.createHash('sha256').update(body, 'utf8').digest('hex');
 

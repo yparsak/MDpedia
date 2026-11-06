@@ -1,0 +1,5 @@
+<ul class="category-list">
+  <% categories.forEach(function (c) { %>
+    <li><a href="<%= c.url %>"><%= c.name %></a> <span class="muted">(<%= c.count %>)</span></li>
+  <% }) %>
+</ul>

@@ -1,8 +1,15 @@
 <%- include('partials/header') %>
 
+<%- include('partials/breadcrumb', { crumbs: crumbs }) %>
+
 <article class="doc">
   <h1><%= doc.title %></h1>
   <p class="muted doc-meta">Last updated <%= doc.updatedAt %></p>
+  <% if (alsoIn.length > 0) { %>
+    <p class="muted also-in">Also in:
+      <% alsoIn.forEach(function (c, i) { %><%= i > 0 ? ', ' : '' %><a href="<%= c.url %>"><%= c.label %></a><% }) %>
+    </p>
+  <% } %>
   <div class="doc-body">
     <%- doc.html %>
   </div>

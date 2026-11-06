@@ -1,0 +1,59 @@
+<%- include('../partials/header') %>
+
+<h1>Categories</h1>
+
+<% if (notice) { %>
+  <p class="notice notice-<%= notice.kind === 'ok' ? 'ok' : 'warn' %>"><%= notice.text %></p>
+<% } %>
+<% if (errors.length > 0) { %>
+  <div class="notice notice-error" role="alert">
+    <ul>
+      <% errors.forEach(function (e) { %><li><%= e %></li><% }) %>
+    </ul>
+  </div>
+<% } %>
+
+<p class="muted">At most three levels. A category can be deleted only when it has no subcategories and no documents, whatever their state.</p>
+
+<% if (rows.length === 0) { %>
+  <p>No categories yet. Add the first one below, or seed a starting tree with <code>make seed-categories</code>.</p>
+<% } else { %>
+  <table class="log">
+    <thead><tr><th>Category</th><th>Slug</th><th>Docs</th><th>Order</th><th></th></tr></thead>
+    <tbody>
+      <% rows.forEach(function (c) { %>
+        <tr>
+          <td class="tree-depth-<%= c.depth %>"><a href="/admin/categories/<%= c.id %>"><%= c.name %></a></td>
+          <td><code><%= c.path %></code></td>
+          <td><%= c.docCount %></td>
+          <td>
+            <form class="inline-form" method="post" action="/admin/categories/<%= c.id %>/reorder">
+              <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+              <% if (c.canUp) { %><button type="submit" name="direction" value="up" class="link-button">Up</button><% } %>
+              <% if (c.canDown) { %><button type="submit" name="direction" value="down" class="link-button">Down</button><% } %>
+            </form>
+          </td>
+          <td><a href="/admin/categories/<%= c.id %>">Edit</a></td>
+        </tr>
+      <% }) %>
+    </tbody>
+  </table>
+<% } %>
+
+<h2>Add a category</h2>
+<form class="form form-wide" method="post" action="/admin/categories" autocomplete="off">
+  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+  <label for="name">Name</label>
+  <input id="name" name="name" type="text" value="<%= form.name %>" maxlength="<%= nameMax %>" required>
+  <label for="slug">Slug</label>
+  <input id="slug" name="slug" type="text" value="<%= form.slug %>" maxlength="<%= slugMax %>">
+  <p class="field-note">Optional. Lowercase letters, digits and hyphens. Made from the name when empty. It is part of document URLs.</p>
+  <label for="parent_id">Parent</label>
+  <select id="parent_id" name="parent_id">
+    <option value="">(top level)</option>
+    <% parents.forEach(function (p) { %><option value="<%= p.id %>"<%= String(p.id) === String(form.parentId) ? ' selected' : '' %>><%= p.label %></option><% }) %>
+  </select>
+  <button type="submit">Add category</button>
+</form>
+
+<%- include('../partials/footer') %>
