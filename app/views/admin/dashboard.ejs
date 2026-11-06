@@ -9,7 +9,9 @@
 <div class="cards">
   <section class="card">
     <h2>Documents</h2>
-    <p class="muted">Not available yet. Upload and publishing arrive in Phase 2.</p>
+    <p><strong><%= docCounts.ready %></strong> ready for review</p>
+    <p><strong><%= docCounts.published %></strong> published, <strong><%= docCounts.unpublished %></strong> unpublished</p>
+    <p><a href="/admin/docs">Manage documents</a> or <a href="/admin/docs/new">upload one</a></p>
   </section>
   <section class="card">
     <h2>AI usage</h2>

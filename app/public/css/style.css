@@ -113,3 +113,43 @@ code { background: #f2f4f5; padding: 0.1em 0.35em; border-radius: 3px; }
 .log th, .log td { border-bottom: 1px solid var(--line); padding: 0.4rem 0.6rem 0.4rem 0; text-align: left; vertical-align: top; }
 .log th { color: var(--muted); font-weight: 500; }
 .pager { display: flex; gap: 1rem; align-items: center; }
+
+/* Phase 2: documents */
+.button {
+  display: inline-block;
+  font: inherit;
+  padding: 0.5rem 1rem;
+  border: 0;
+  border-radius: 4px;
+  background: var(--accent);
+  color: #fff;
+  text-decoration: none;
+  cursor: pointer;
+}
+.filters { display: flex; gap: 1rem; flex-wrap: wrap; margin: 1rem 0 0.5rem; }
+.badge {
+  display: inline-block;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 0 0.6rem;
+  font-size: 0.8rem;
+  white-space: nowrap;
+}
+.badge-ready { background: var(--warn-bg); border-color: var(--warn-line); }
+.badge-published { background: #e8f5ec; border-color: #7bb88c; }
+.badge-unpublished { background: #f2f4f5; }
+.badge-warn { background: var(--warn-bg); border-color: var(--warn-line); }
+.guidance { color: var(--muted); padding-left: 1.2rem; }
+.field-note { color: var(--muted); font-size: 0.875rem; margin: 0; }
+.form-wide { max-width: 40rem; }
+.form textarea {
+  font: inherit;
+  padding: 0.45rem 0.6rem;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  resize: vertical;
+}
+.doc-list { list-style: none; padding: 0; }
+.doc-list li { padding: 0.6rem 0; border-bottom: 1px solid var(--line); }
+.doc-summary { display: block; font-size: 0.95rem; }
+.doc-meta { margin-top: -0.5rem; }

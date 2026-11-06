@@ -1,0 +1,19 @@
+<%- include('partials/header') %>
+
+<h1>MDpedia</h1>
+
+<% if (docs.length === 0) { %>
+  <p class="muted">No documents have been published yet.</p>
+<% } else { %>
+  <ul class="doc-list">
+    <% docs.forEach(function (d) { %>
+      <li>
+        <a href="/wiki/<%= d.slug %>"><%= d.title %></a>
+        <% if (d.summary) { %><span class="doc-summary muted"><%= d.summary %></span><% } %>
+      </li>
+    <% }) %>
+  </ul>
+  <%- include('partials/pager', { basePath: '/?', page: page, pages: pages }) %>
+<% } %>
+
+<%- include('partials/footer') %>

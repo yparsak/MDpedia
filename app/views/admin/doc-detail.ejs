@@ -1,0 +1,81 @@
+<%- include('../partials/header') %>
+
+<h1><%= doc.title %></h1>
+
+<% if (notice) { %>
+  <p class="notice notice-<%= notice.kind === 'ok' ? 'ok' : 'warn' %>"><%= notice.text %></p>
+<% } %>
+<% if (errors.length > 0) { %>
+  <div class="notice notice-error" role="alert">
+    <ul>
+      <% errors.forEach(function (e) { %><li><%= e %></li><% }) %>
+    </ul>
+  </div>
+<% } %>
+
+<table class="facts">
+  <tr><th scope="row">Status</th><td><span class="badge badge-<%= doc.status %>"><%= doc.statusLabel %></span></td></tr>
+  <tr><th scope="row">Slug</th><td><code><%= doc.slug %></code> (permanent)</td></tr>
+  <tr><th scope="row">Id</th><td><%= doc.id %></td></tr>
+  <tr>
+    <th scope="row">Reader links</th>
+    <td>
+      <% if (doc.published) { %>
+        <a href="/wiki/<%= doc.slug %>">/wiki/<%= doc.slug %></a>,
+        <a href="/doc?id=<%= doc.id %>">/doc?id=<%= doc.id %></a>
+      <% } else { %>
+        <span class="muted">none while the document is not published</span>
+      <% } %>
+    </td>
+  </tr>
+  <tr><th scope="row">Uploaded</th><td><%= doc.createdAt %></td></tr>
+  <tr><th scope="row">Updated</th><td><%= doc.updatedAt %></td></tr>
+  <% if (doc.publishedAt) { %><tr><th scope="row">Published</th><td><%= doc.publishedAt %></td></tr><% } %>
+</table>
+
+<% if (doc.hasRawHtml) { %>
+  <p class="notice notice-warn">
+    This document contains raw HTML. It is not rendered: the markup appears on the page as plain text.
+  </p>
+<% } %>
+
+<h2>Visibility</h2>
+<% if (doc.published) { %>
+  <form class="inline-form" method="post" action="/admin/docs/<%= doc.id %>/unpublish">
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <button type="submit" class="button">Unpublish</button>
+  </form>
+<% } else { %>
+  <form class="inline-form" method="post" action="/admin/docs/<%= doc.id %>/publish">
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <button type="submit" class="button"><%= doc.status === 'unpublished' ? 'Publish again' : 'Publish' %></button>
+  </form>
+<% } %>
+
+<h2>Title</h2>
+<form class="form form-wide" method="post" action="/admin/docs/<%= doc.id %>/title" autocomplete="off">
+  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+  <label for="title">Title</label>
+  <input id="title" name="title" type="text" value="<%= titleValue %>" maxlength="<%= titleMax %>" required>
+  <p class="field-note">The slug stays the same.</p>
+  <button type="submit">Save title</button>
+</form>
+
+<h2>Summary</h2>
+<form class="form form-wide" method="post" action="/admin/docs/<%= doc.id %>/summary" autocomplete="off">
+  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+  <label for="summary">Summary</label>
+  <textarea id="summary" name="summary" rows="4" maxlength="<%= summaryMax %>"><%= summaryValue %></textarea>
+  <p class="field-note">
+    Up to <%= summaryMax %> characters. Saving marks it as hand-edited. Leave it empty to clear it.
+    <% if (doc.summaryEdited) { %><span class="badge badge-ready">hand-edited</span><% } %>
+  </p>
+  <button type="submit">Save summary</button>
+</form>
+
+<h2>Preview</h2>
+<div class="doc-body doc-preview">
+  <%- doc.html %>
+</div>
+
+<%- include('../partials/footer') %>

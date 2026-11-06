@@ -1,0 +1,11 @@
+<%- include('partials/header') %>
+
+<article class="doc">
+  <h1><%= doc.title %></h1>
+  <p class="muted doc-meta">Last updated <%= doc.updatedAt %></p>
+  <div class="doc-body">
+    <%- doc.html %>
+  </div>
+</article>
+
+<%- include('partials/footer') %>

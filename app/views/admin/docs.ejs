@@ -1,0 +1,46 @@
+<%- include('../partials/header') %>
+
+<h1>Documents</h1>
+
+<% if (notice) { %>
+  <p class="notice notice-<%= notice.kind === 'ok' ? 'ok' : 'warn' %>"><%= notice.text %></p>
+<% } %>
+
+<p><a class="button" href="/admin/docs/new">Upload a document</a></p>
+
+<nav class="filters" aria-label="Filter by status">
+  <% filters.forEach(function (f) { %>
+    <% if (f.active) { %>
+      <strong><%= f.label %></strong>
+    <% } else { %>
+      <a href="/admin/docs?status=<%= f.key %>"><%= f.label %></a>
+    <% } %>
+  <% }) %>
+</nav>
+
+<p class="muted"><%= total %> document<%= total === 1 ? '' : 's' %>, newest first.</p>
+
+<% if (rows.length === 0) { %>
+  <p>No documents here.</p>
+<% } else { %>
+  <table class="log">
+    <thead><tr><th>Title</th><th>Slug</th><th>Status</th><th>Updated</th></tr></thead>
+    <tbody>
+      <% rows.forEach(function (d) { %>
+        <tr>
+          <td>
+            <a href="/admin/docs/<%= d.id %>"><%= d.title %></a>
+            <% if (d.hasRawHtml) { %><span class="badge badge-warn">raw HTML</span><% } %>
+          </td>
+          <td><code><%= d.slug %></code></td>
+          <td><span class="badge badge-<%= d.status %>"><%= d.statusLabel %></span></td>
+          <td><%= d.updatedAt %></td>
+        </tr>
+      <% }) %>
+    </tbody>
+  </table>
+<% } %>
+
+<%- include('../partials/pager', { basePath: '/admin/docs?status=' + filterKey + '&', page: page, pages: pages }) %>
+
+<%- include('../partials/footer') %>

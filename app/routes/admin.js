@@ -3,6 +3,11 @@ import { loadAdminSession, noStore, requireAdmin, verifyCsrf } from '../middlewa
 import { FIELD, makeLoginToken, verifyLoginToken } from '../services/csrf.js';
 import { createThrottle } from '../services/throttle.js';
 import { recordAudit, listAudit } from '../services/audit.js';
+import { countByStatus } from '../services/docs.js';
+import { noticeFrom } from '../services/notices.js';
+import { pageCount, parsePage } from '../services/pagination.js';
+import { getStatus } from '../services/status.js';
+import { adminDocsRouter } from './admin-docs.js';
 import { findByUsername, normalizeUsername, recordLogin, setPassword } from '../services/admins.js';
 import { hashPassword, passwordProblems, verifyAgainstDummy, verifyPassword } from '../services/passwords.js';
 import {
@@ -24,11 +29,11 @@ const NOTICES = {
   'password-changed': { kind: 'ok', text: 'Password changed. Any other sessions were logged out.' },
 };
 
-const noticeFor = (req) => (Object.hasOwn(NOTICES, req.query.msg) ? NOTICES[req.query.msg] : null);
+const noticeFor = (req) => noticeFrom(NOTICES, req);
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-export function adminRouter({ pool, config }) {
+export function adminRouter({ pool, config, version }) {
   const router = Router();
   const loginThrottle = createThrottle({ maxFails: config.rate.loginFailsPer15Min });
   // The change-password form also checks a password, so it gets the same limit.
@@ -128,9 +133,11 @@ export function adminRouter({ pool, config }) {
 
   router.get('/', needAdmin, async (req, res) => {
     const { rows } = await listAudit(pool, { limit: 5, offset: 0 });
+    const docCounts = await countByStatus(pool);
     res.render('admin/dashboard', {
       title: 'Dashboard',
       notice: noticeFor(req),
+      docCounts,
       sessionExpires: req.session.expiresAt,
       idleMinutes: config.session.idleMinutes,
       recent: rows.map(auditRow),
@@ -140,8 +147,7 @@ export function adminRouter({ pool, config }) {
   // -------------------------------------------------------------- audit log
 
   router.get('/audit', needAdmin, async (req, res) => {
-    const requested = Number.parseInt(String(req.query.page ?? '1'), 10);
-    const page = Number.isFinite(requested) && requested > 0 ? requested : 1;
+    const page = parsePage(req.query.page);
     const { total, rows } = await listAudit(pool, {
       limit: AUDIT_PAGE_SIZE,
       offset: (page - 1) * AUDIT_PAGE_SIZE,
@@ -150,10 +156,37 @@ export function adminRouter({ pool, config }) {
       title: 'Audit log',
       rows: rows.map(auditRow),
       page,
-      pages: Math.max(1, Math.ceil(total / AUDIT_PAGE_SIZE)),
+      pages: pageCount(total, AUDIT_PAGE_SIZE),
       total,
     });
   });
+
+  // ----------------------------------------------------------------- status
+
+  // The Phase 0 status page, moved here from "/" when the reader home page took over.
+  router.get('/status', needAdmin, async (req, res) => {
+    const status = await getStatus(pool);
+    const healthy = status.db === 'ok' && status.schema === 'ok';
+
+    // Built field by field: request objects never go into render options (brainstorm 5.7).
+    res.status(healthy ? 200 : 503).render('status', {
+      title: 'Wiki status',
+      version,
+      env: config.env,
+      status: {
+        db: status.db,
+        serverVersion: status.serverVersion,
+        schema: status.schema,
+        schemaVersion: status.schemaVersion,
+        expectedVersion: status.expectedVersion,
+        missing: status.missing,
+      },
+    });
+  });
+
+  // -------------------------------------------------------------- documents
+
+  router.use('/docs', adminDocsRouter({ pool, config, needAdmin }));
 
   // -------------------------------------------------------- change password
 

@@ -5,6 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title><%= title %> · MDpedia</title>
   <link rel="stylesheet" href="/css/style.css">
+  <% (locals.styles || []).forEach(function (href) { %><link rel="stylesheet" href="<%= href %>">
+  <% }) %>
+  <% (locals.scripts || []).forEach(function (src) { %><script type="module" src="<%= src %>"></script>
+  <% }) %>
 </head>
 <body>
 <header class="site-header">
@@ -15,7 +19,9 @@
   <% if (admin) { %>
   <nav class="site-nav" aria-label="Admin">
     <a href="/admin">Dashboard</a>
+    <a href="/admin/docs">Documents</a>
     <a href="/admin/audit">Audit log</a>
+    <a href="/admin/status">Status</a>
     <a href="/admin/password">Password</a>
     <form class="inline-form" method="post" action="/admin/logout">
       <input type="hidden" name="_csrf" value="<%= csrfToken %>">

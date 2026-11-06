@@ -1,0 +1,40 @@
+<%- include('../partials/header') %>
+
+<h1>Upload a document</h1>
+
+<% if (errors.length > 0) { %>
+  <div class="notice notice-error" role="alert">
+    <ul>
+      <% errors.forEach(function (e) { %><li><%= e %></li><% }) %>
+    </ul>
+  </div>
+<% } %>
+
+<ul class="guidance">
+  <li>One Markdown file ending in <code>.md</code>, UTF-8 text, up to <%= maxBytes %> bytes.</li>
+  <li>Write currency as <code>\$5</code>. A bare <code>$</code> starts an equation.</li>
+  <li>Do not include secrets, credentials or personal data. Document text is sent to the AI provider once AI processing arrives.</li>
+  <li>The document is saved unpublished. You review it and publish it yourself.</li>
+</ul>
+
+<form class="form" id="upload-form" method="post" action="/admin/docs" enctype="multipart/form-data" autocomplete="off">
+  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+  <label for="file">Markdown file</label>
+  <input id="file" name="file" type="file" accept=".md,text/markdown" required>
+
+  <label for="title">Title</label>
+  <input id="title" name="title" type="text" value="<%= form.title %>" maxlength="<%= titleMax %>">
+  <p class="field-note">Filled in from the file when you choose it. Leave it empty to use the title the file already has.</p>
+
+  <label for="slug">Slug</label>
+  <input id="slug" name="slug" type="text" value="<%= form.slug %>" maxlength="<%= slugMax + 20 %>">
+  <p class="field-note">
+    Address: <code>/wiki/<span id="slug-preview"><%= form.slug %></span></code>
+    <strong>The slug is permanent.</strong> It cannot be changed after the upload, and other documents will link to it.
+    Lowercase letters, digits and hyphens, up to <%= slugMax %> characters.
+  </p>
+
+  <button type="submit">Upload</button>
+</form>
+
+<%- include('../partials/footer') %>

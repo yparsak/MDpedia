@@ -1,0 +1,5 @@
+<p class="pager">
+  <% if (page > 1) { %><a href="<%= basePath %>page=<%= page - 1 %>"><%= locals.prevLabel || 'Previous' %></a><% } %>
+  Page <%= page %> of <%= pages %>
+  <% if (page < pages) { %><a href="<%= basePath %>page=<%= page + 1 %>"><%= locals.nextLabel || 'Next' %></a><% } %>
+</p>

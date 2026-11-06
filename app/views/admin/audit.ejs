@@ -23,10 +23,6 @@
   </table>
 <% } %>
 
-<p class="pager">
-  <% if (page > 1) { %><a href="/admin/audit?page=<%= page - 1 %>">Newer</a><% } %>
-  Page <%= page %> of <%= pages %>
-  <% if (page < pages) { %><a href="/admin/audit?page=<%= page + 1 %>">Older</a><% } %>
-</p>
+<%- include('../partials/pager', { basePath: '/admin/audit?', page: page, pages: pages, prevLabel: 'Newer', nextLabel: 'Older' }) %>
 
 <%- include('../partials/footer') %>

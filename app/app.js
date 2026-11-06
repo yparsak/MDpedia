@@ -6,6 +6,7 @@ import helmet from 'helmet';
 import { log, errorFields, requestLogger } from './logger.js';
 import { statusRouter } from './routes/status.js';
 import { adminRouter } from './routes/admin.js';
+import { readerRouter } from './routes/reader.js';
 
 const appDir = path.dirname(fileURLToPath(import.meta.url));
 const { version } = JSON.parse(fs.readFileSync(path.join(appDir, '..', 'package.json'), 'utf8'));
@@ -24,7 +25,7 @@ export function createApp({ config, pool }) {
   app.use(requestLogger);
 
   // Baseline security headers (brainstorm 5.11, section 7). Inline styles are
-  // allowed because KaTeX emits style attributes (Phase 2); scripts stay strict.
+  // allowed because KaTeX emits style attributes; scripts stay strict.
   // The site runs over plain HTTP on the LAN for now, so the defaults that only
   // make sense over HTTPS are turned off: upgrade-insecure-requests would make
   // the browser request the CSS over https and fail, and HSTS is ignored on HTTP.
@@ -50,8 +51,15 @@ export function createApp({ config, pool }) {
 
   app.use(express.static(path.join(appDir, 'public'), { index: false, dotfiles: 'ignore' }));
 
-  app.use(statusRouter({ pool, version, env: config.env }));
-  app.use('/admin', adminRouter({ pool, config }));
+  // KaTeX's stylesheet and fonts, served from the package so there is no copy to keep in step.
+  app.use(
+    '/vendor/katex',
+    express.static(path.join(appDir, '..', 'node_modules', 'katex', 'dist'), { index: false, dotfiles: 'ignore' }),
+  );
+
+  app.use(statusRouter({ pool }));
+  app.use(readerRouter({ pool }));
+  app.use('/admin', adminRouter({ pool, config, version }));
 
   app.use((req, res) => {
     res.status(404).render('404', { title: 'Page not found' });
