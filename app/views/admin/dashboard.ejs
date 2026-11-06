@@ -1,0 +1,44 @@
+<%- include('../partials/header') %>
+
+<h1>Dashboard</h1>
+
+<% if (notice) { %>
+  <p class="notice notice-<%= notice.kind === 'ok' ? 'ok' : 'warn' %>"><%= notice.text %></p>
+<% } %>
+
+<div class="cards">
+  <section class="card">
+    <h2>Documents</h2>
+    <p class="muted">Not available yet. Upload and publishing arrive in Phase 2.</p>
+  </section>
+  <section class="card">
+    <h2>AI usage</h2>
+    <p class="muted">Not available yet. The AI Lab arrives in Phase 6.</p>
+  </section>
+  <section class="card">
+    <h2>Last backup</h2>
+    <p class="muted">Not tracked yet. Backup status arrives in Phase 10.</p>
+  </section>
+  <section class="card">
+    <h2>Your session</h2>
+    <p>Logged in as <strong><%= admin.username %></strong>.</p>
+    <p class="muted">Ends after <%= idleMinutes %> idle minutes, or at <%= sessionExpires %> (server time) at the latest.</p>
+  </section>
+</div>
+
+<h2>Recent activity</h2>
+<% if (recent.length === 0) { %>
+  <p class="muted">Nothing recorded yet.</p>
+<% } else { %>
+  <table class="log">
+    <thead><tr><th>Time</th><th>Actor</th><th>Action</th><th>Summary</th></tr></thead>
+    <tbody>
+      <% recent.forEach(function (r) { %>
+        <tr><td><%= r.time %></td><td><%= r.actor %></td><td><code><%= r.action %></code></td><td><%= r.summary %></td></tr>
+      <% }) %>
+    </tbody>
+  </table>
+  <p><a href="/admin/audit">Full audit log</a></p>
+<% } %>
+
+<%- include('../partials/footer') %>

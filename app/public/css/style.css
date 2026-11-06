@@ -67,3 +67,49 @@ code { background: #f2f4f5; padding: 0.1em 0.35em; border-radius: 3px; }
   text-align: left;
 }
 .facts th { color: var(--muted); font-weight: 500; }
+
+.notice-ok { background: #e8f5ec; border-color: #7bb88c; }
+.notice ul { margin: 0; padding-left: 1.2rem; }
+.muted { color: var(--muted); }
+
+.site-header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem; }
+.site-nav { display: flex; align-items: center; gap: 1rem; font-size: 0.95rem; }
+.inline-form { display: inline; margin: 0; }
+.link-button {
+  background: none;
+  border: 0;
+  padding: 0;
+  color: var(--accent);
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.form { display: grid; gap: 0.35rem; max-width: 22rem; margin-top: 1rem; }
+.form label { font-weight: 500; margin-top: 0.5rem; }
+.form input {
+  font: inherit;
+  padding: 0.45rem 0.6rem;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+}
+.form button {
+  margin-top: 1rem;
+  font: inherit;
+  padding: 0.5rem 1rem;
+  border: 0;
+  border-radius: 4px;
+  background: var(--accent);
+  color: #fff;
+  cursor: pointer;
+}
+
+.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr)); gap: 1rem; margin: 1rem 0 2rem; }
+.card { border: 1px solid var(--line); border-radius: 6px; padding: 0.25rem 1rem 0.75rem; }
+.card h2 { font-size: 1rem; margin-bottom: 0.25rem; }
+.card p { margin: 0.25rem 0; }
+
+.log { border-collapse: collapse; width: 100%; font-size: 0.9rem; }
+.log th, .log td { border-bottom: 1px solid var(--line); padding: 0.4rem 0.6rem 0.4rem 0; text-align: left; vertical-align: top; }
+.log th { color: var(--muted); font-weight: 500; }
+.pager { display: flex; gap: 1rem; align-items: center; }

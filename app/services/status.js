@@ -5,7 +5,7 @@
 const PROBE_TIMEOUT_MS = 5000;
 
 // Add one entry per phase, in order. The version is the file name without .sql.
-export const EXPECTED_MIGRATIONS = ['000_schema_migrations'];
+export const EXPECTED_MIGRATIONS = ['000_schema_migrations', '001_admin'];
 
 const versionNumber = (name) => Number.parseInt(name.split('_')[0], 10);
 

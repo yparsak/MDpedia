@@ -1,0 +1,21 @@
+<%- include('partials/header') %>
+
+<h1>Admin login</h1>
+
+<% if (notice) { %>
+  <p class="notice notice-<%= notice.kind === 'ok' ? 'ok' : 'warn' %>"><%= notice.text %></p>
+<% } %>
+<% if (error) { %>
+  <p class="notice notice-error" role="alert"><%= error %></p>
+<% } %>
+
+<form class="form" method="post" action="/admin/login" autocomplete="on">
+  <input type="hidden" name="_csrf" value="<%= loginToken %>">
+  <label for="username">User name</label>
+  <input id="username" name="username" type="text" value="<%= username %>" autocomplete="username" maxlength="64" required autofocus>
+  <label for="password">Password</label>
+  <input id="password" name="password" type="password" autocomplete="current-password" maxlength="256" required>
+  <button type="submit">Log in</button>
+</form>
+
+<%- include('partials/footer') %>

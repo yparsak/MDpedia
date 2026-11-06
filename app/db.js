@@ -14,5 +14,8 @@ export function createPool(dbConfig) {
     connectionLimit: 10,
     connectTimeout: 5000,
     enableKeepAlive: true,
+    // Dates come back as the database's own text, so the admin pages show the
+    // same clock the session limits use, with no time-zone conversion.
+    dateStrings: true,
   });
 }

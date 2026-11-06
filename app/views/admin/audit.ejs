@@ -1,0 +1,32 @@
+<%- include('../partials/header') %>
+
+<h1>Audit log</h1>
+<p class="muted"><%= total %> entr<%= total === 1 ? 'y' : 'ies' %>, newest first. Times are server time. The log is append-only.</p>
+
+<% if (rows.length === 0) { %>
+  <p>No entries on this page.</p>
+<% } else { %>
+  <table class="log">
+    <thead><tr><th>Time</th><th>Actor</th><th>Action</th><th>Target</th><th>Summary</th><th>IP</th></tr></thead>
+    <tbody>
+      <% rows.forEach(function (r) { %>
+        <tr>
+          <td><%= r.time %></td>
+          <td><%= r.actor %></td>
+          <td><code><%= r.action %></code></td>
+          <td><%= r.target %></td>
+          <td><%= r.summary %></td>
+          <td><%= r.ip %></td>
+        </tr>
+      <% }) %>
+    </tbody>
+  </table>
+<% } %>
+
+<p class="pager">
+  <% if (page > 1) { %><a href="/admin/audit?page=<%= page - 1 %>">Newer</a><% } %>
+  Page <%= page %> of <%= pages %>
+  <% if (page < pages) { %><a href="/admin/audit?page=<%= page + 1 %>">Older</a><% } %>
+</p>
+
+<%- include('../partials/footer') %>

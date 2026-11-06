@@ -5,6 +5,7 @@ import express from 'express';
 import helmet from 'helmet';
 import { log, errorFields, requestLogger } from './logger.js';
 import { statusRouter } from './routes/status.js';
+import { adminRouter } from './routes/admin.js';
 
 const appDir = path.dirname(fileURLToPath(import.meta.url));
 const { version } = JSON.parse(fs.readFileSync(path.join(appDir, '..', 'package.json'), 'utf8'));
@@ -15,6 +16,10 @@ export function createApp({ config, pool }) {
   app.set('view engine', 'ejs');
   app.set('views', path.join(appDir, 'views'));
   app.set('trust proxy', config.server.trustProxy);
+
+  // Defaults for the header partial; the admin routes override them per request.
+  app.locals.admin = null;
+  app.locals.csrfToken = null;
 
   app.use(requestLogger);
 
@@ -46,6 +51,7 @@ export function createApp({ config, pool }) {
   app.use(express.static(path.join(appDir, 'public'), { index: false, dotfiles: 'ignore' }));
 
   app.use(statusRouter({ pool, version, env: config.env }));
+  app.use('/admin', adminRouter({ pool, config }));
 
   app.use((req, res) => {
     res.status(404).render('404', { title: 'Page not found' });

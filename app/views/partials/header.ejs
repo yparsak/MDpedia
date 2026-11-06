@@ -12,5 +12,16 @@
     <img src="/imgs/logo.png" alt="" height="36">
     <span>MDpedia</span>
   </a>
+  <% if (admin) { %>
+  <nav class="site-nav" aria-label="Admin">
+    <a href="/admin">Dashboard</a>
+    <a href="/admin/audit">Audit log</a>
+    <a href="/admin/password">Password</a>
+    <form class="inline-form" method="post" action="/admin/logout">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <button type="submit" class="link-button">Log out (<%= admin.username %>)</button>
+    </form>
+  </nav>
+  <% } %>
 </header>
 <main class="site-main">
