@@ -6,27 +6,28 @@
 // in the uploaded front matter is ignored: the database assigns the id, nothing
 // in an upload may publish itself, and category ids from another wiki would
 // point at the wrong categories here. Categories are assigned on the doc page.
+// Search keywords, key phrases, synonyms and questions are kept (cleaned and
+// capped), since they are plain text that harms nothing.
 
 import path from 'node:path';
 import { SLUG_MAX, SLUG_PATTERN, slugify } from '../public/js/slug.js';
 import { parseFrontMatter } from './frontmatter.js';
+import { cleanLine } from './text.js';
 import { createDoc, slugTaken } from './docs.js';
+import { termsFromFrontMatter } from './search-terms.js';
 import { firstHeading, renderMarkdown } from './markdown.js';
 
+// Moved to text.js so search-terms.js can use it without a cycle; kept exported here for the existing imports.
+export { cleanLine };
 export const TITLE_MAX = 200;
 export const SUMMARY_MAX = 600;
 
-const KNOWN_KEYS = ['id', 'slug', 'title', 'published', 'categories', 'summary', 'summary_edited'];
+const KNOWN_KEYS = [
+  'id', 'slug', 'title', 'published', 'categories', 'summary', 'summary_edited',
+  'keywords', 'key_phrases', 'synonyms', 'questions',
+];
 
 const fail = (status, ...errors) => ({ ok: false, status, errors });
-
-// Control characters become spaces, runs of whitespace collapse, ends are trimmed.
-export const cleanLine = (value) =>
-  String(value ?? '')
-    // eslint-disable-next-line no-control-regex -- stripping control characters is the point
-    .replace(/[\u0000-\u001f\u007f]/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
 
 // { ok: true, text } or { ok: false, status, errors }.
 export function validateUploadFile({ buffer, originalName, maxBytes }) {
@@ -110,9 +111,10 @@ export async function ingestUpload(pool, config, { file, formTitle, formSlug }) 
   const summary = cleanLine(data.summary).slice(0, SUMMARY_MAX) || null;
   const extraFrontMatter = Object.fromEntries(Object.entries(data).filter(([key]) => !KNOWN_KEYS.includes(key)));
   const rendered = await renderMarkdown(body, { title });
+  const terms = termsFromFrontMatter(data);
 
   try {
-    const id = await createDoc(pool, config, { slug, title, summary, extraFrontMatter, body, rendered });
+    const id = await createDoc(pool, config, { slug, title, summary, extraFrontMatter, terms, body, rendered });
     return { ok: true, id, slug };
   } catch (err) {
     // Lost a race for the slug, or a stray file already holds the name.

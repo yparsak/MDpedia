@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { loadEnvFile, loadConfig, summarize } from './config.js';
 import { createPool } from './db.js';
 import { createApp } from './app.js';
+import { pruneSearchLog } from './services/search-log.js';
 import { runSelfCheck } from './services/selfcheck.js';
 import { log, errorFields } from './logger.js';
 
@@ -37,6 +38,21 @@ const server = app.listen(config.server.port, config.server.host, async () => {
   }
   console.log('');
 });
+
+// The search log keeps queries only for SEARCH_LOG_RETENTION_DAYS (brainstorm 5.1).
+// Pruned at start and every few hours; a failure is logged and the app carries on.
+// Phase 10 may fold this into the operations worker.
+const PRUNE_INTERVAL_MS = 6 * 60 * 60 * 1000;
+async function pruneLog() {
+  try {
+    const removed = await pruneSearchLog(pool, config.search.logRetentionDays);
+    if (removed > 0) log.info('search log pruned', { removed });
+  } catch (err) {
+    log.warn('search log prune failed', errorFields(err));
+  }
+}
+pruneLog();
+setInterval(pruneLog, PRUNE_INTERVAL_MS).unref();
 
 server.on('error', (err) => {
   if (err.code === 'EADDRINUSE') {

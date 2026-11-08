@@ -1,0 +1,11 @@
+{
+  "queries": [
+    { "query": "limit", "expected": "introduction-to-limits", "note": "a word from the title" },
+    { "query": "limits", "expected": "introduction-to-limits", "note": "plural: no stemming, found by the prefix" },
+    { "query": "trigonometric", "expected": "introduction-to-limits", "note": "a word that is only in the body" },
+    { "query": "fundamental theorem", "expected": "the-fundamental-theorem-of-calculus", "note": "two words, both in the title" },
+    { "query": "\"fundamental theorem of calculus\"", "expected": "the-fundamental-theorem-of-calculus", "note": "a quoted phrase" },
+    { "query": "antiderivative", "expected": "the-fundamental-theorem-of-calculus", "note": "in the body; add a keyword or synonym to move it up" },
+    { "query": "calculus", "expected": ["introduction-to-limits", "the-fundamental-theorem-of-calculus"], "note": "either doc is a right answer" }
+  ]
+}

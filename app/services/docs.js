@@ -9,6 +9,7 @@
 import { bodyHash, serializeFrontMatter } from './frontmatter.js';
 import { createDocFile, removeDocFile, updateDocFile } from './docfiles.js';
 import { renderMarkdown } from './markdown.js';
+import { emptyTerms, insertTerms, termsToFrontMatter } from './search-terms.js';
 
 export const STATUS_LABELS = {
   ready: 'Ready for review',
@@ -80,7 +81,7 @@ export async function countByStatus(pool) {
 // other is undone, so a doc never exists in only one place. Throws ER_DUP_ENTRY
 // (slug taken in the table) or EEXIST (a file with that name is already in the
 // docs directory); the caller turns both into "slug taken". Resolves to the new id.
-export async function createDoc(pool, config, { slug, title, summary, extraFrontMatter, body, rendered }) {
+export async function createDoc(pool, config, { slug, title, summary, extraFrontMatter, terms = emptyTerms(), body, rendered }) {
   const hash = bodyHash(body);
   const conn = await pool.getConnection();
   let fileWritten = false;
@@ -92,8 +93,18 @@ export async function createDoc(pool, config, { slug, title, summary, extraFront
       [slug, title, summary, summary ? 1 : 0, rendered.hasRawHtml ? 1 : 0, hash, rendered.html, rendered.plainText],
     );
     const id = result.insertId;
+    await insertTerms(conn, id, terms);
     const text = serializeFrontMatter(
-      { ...extraFrontMatter, id, slug, title, published: false, summary: summary || undefined, summary_edited: summary ? true : undefined },
+      {
+        ...extraFrontMatter,
+        id,
+        slug,
+        title,
+        published: false,
+        summary: summary || undefined,
+        summary_edited: summary ? true : undefined,
+        ...termsToFrontMatter(terms),
+      },
       body,
     );
     await createDocFile(config, { slug, text, expectedHash: hash });

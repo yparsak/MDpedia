@@ -10,6 +10,7 @@ import { pageCount, parsePage } from '../services/pagination.js';
 import { getStatus } from '../services/status.js';
 import { adminCategoriesRouter } from './admin-categories.js';
 import { adminDocsRouter } from './admin-docs.js';
+import { adminSearchRouter } from './admin-search.js';
 import { findByUsername, normalizeUsername, recordLogin, setPassword } from '../services/admins.js';
 import { hashPassword, passwordProblems, verifyAgainstDummy, verifyPassword } from '../services/passwords.js';
 import {
@@ -195,6 +196,10 @@ export function adminRouter({ pool, config, version }) {
   // ------------------------------------------------------------- categories
 
   router.use('/categories', adminCategoriesRouter({ pool, config, needAdmin }));
+
+  // ----------------------------------------------------------------- search
+
+  router.use('/search', adminSearchRouter({ pool, config, needAdmin }));
 
   // -------------------------------------------------------- change password
 

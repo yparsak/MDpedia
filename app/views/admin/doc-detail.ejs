@@ -112,6 +112,22 @@
   <button type="submit">Save summary</button>
 </form>
 
+<h2>Search keywords</h2>
+<form class="form form-wide" method="post" action="/admin/docs/<%= doc.id %>/keywords" autocomplete="off">
+  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+  <p class="field-note">
+    Plain text, one entry per line. They are searched next to the title, summary and body, and rank above a body-only match.
+    A keyword may end with <code>| 1</code>, <code>| 2</code> or <code>| 3</code> to set its weight (1 when left out).
+    A single letter such as <code>x</code> is searchable only as a keyword.
+  </p>
+  <% termLists.forEach(function (t) { %>
+    <label for="terms-<%= t.list %>"><%= t.label.charAt(0).toUpperCase() + t.label.slice(1) %>s</label>
+    <textarea id="terms-<%= t.list %>" name="<%= t.list %>" rows="<%= t.list === 'questions' ? 3 : 4 %>"><%= termsValue[t.list] %></textarea>
+    <p class="field-note">Up to <%= t.max %>, each up to <%= t.length %> characters.</p>
+  <% }) %>
+  <button type="submit">Save search keywords</button>
+</form>
+
 <h2>Preview</h2>
 <div class="doc-body doc-preview">
   <%- doc.html %>

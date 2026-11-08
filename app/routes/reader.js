@@ -9,7 +9,8 @@ import {
   pathLabel,
   publishedSubtreeCounts,
 } from '../services/categories.js';
-import { categoryIdsForDocs, getDocCategoryIds, listPublishedInCategory } from '../services/doc-categories.js';
+import { getDocCategoryIds, listPublishedInCategory } from '../services/doc-categories.js';
+import { docLinks } from '../services/doc-links.js';
 import { getPublishedById, getPublishedBySlug, listPublished } from '../services/docs.js';
 import { pageCount, parsePage } from '../services/pagination.js';
 
@@ -36,16 +37,6 @@ export function readerRouter({ pool }) {
     res.set('Cache-Control', 'no-store');
     res.redirect(status, url);
   };
-
-  // Link target for each doc row: the canonical path through its primary category.
-  async function docLinks(tree, rows) {
-    const categoryIds = await categoryIdsForDocs(pool, rows.map((d) => d.id));
-    return rows.map((d) => ({
-      url: `/wiki/${docPath(tree.byId.get(categoryIds.get(d.id)[0]) ?? null, d.slug)}`,
-      title: d.title,
-      summary: d.summary ?? '',
-    }));
-  }
 
   const crumbsFor = (node) => [{ name: 'Home', url: '/' }, ...chainOf(node).map((n) => ({ name: n.name, url: categoryUrl(n) }))];
 
@@ -77,7 +68,7 @@ export function readerRouter({ pool }) {
       categories: tree.roots
         .filter((n) => counts.get(n.id) > 0)
         .map((n) => ({ name: n.name, url: categoryUrl(n), count: counts.get(n.id) })),
-      docs: await docLinks(tree, rows),
+      docs: await docLinks(pool, tree, rows),
       page,
       pages: pageCount(total, HOME_PAGE_SIZE),
     });
@@ -124,7 +115,7 @@ export function readerRouter({ pool }) {
       subcategories: node.children
         .filter((n) => counts.get(n.id) > 0)
         .map((n) => ({ name: n.name, url: categoryUrl(n), count: counts.get(n.id) })),
-      docs: await docLinks(tree, rows),
+      docs: await docLinks(pool, tree, rows),
       basePath: `${categoryUrl(node)}?`,
       page,
       pages: pageCount(total, HOME_PAGE_SIZE),

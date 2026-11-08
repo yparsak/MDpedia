@@ -7,6 +7,7 @@ import { log, errorFields, requestLogger } from './logger.js';
 import { statusRouter } from './routes/status.js';
 import { adminRouter } from './routes/admin.js';
 import { readerRouter } from './routes/reader.js';
+import { searchRouter } from './routes/search.js';
 
 const appDir = path.dirname(fileURLToPath(import.meta.url));
 const { version } = JSON.parse(fs.readFileSync(path.join(appDir, '..', 'package.json'), 'utf8'));
@@ -59,6 +60,7 @@ export function createApp({ config, pool }) {
 
   app.use(statusRouter({ pool }));
   app.use(readerRouter({ pool }));
+  app.use(searchRouter({ pool, config }));
   app.use('/admin', adminRouter({ pool, config, version }));
 
   app.use((req, res) => {

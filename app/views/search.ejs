@@ -1,0 +1,40 @@
+<%- include('partials/header') %>
+
+<h1>Search</h1>
+
+<% if (message) { %>
+  <p class="notice notice-warn" role="alert"><%= message %></p>
+<% } %>
+
+<% if (results) { %>
+  <% if (trimmed) { %>
+    <p class="muted">Your search was long, so only its first <%= maxChars %> characters and <%= maxTerms %> terms were used.</p>
+  <% } %>
+
+  <% if (total === 0) { %>
+    <p>No documents match <strong><%= query %></strong>.</p>
+    <ul class="guidance">
+      <li>Check the spelling.</li>
+      <li>Try fewer or more general words.</li>
+      <li>A single letter or symbol is not searchable; use a word.</li>
+    </ul>
+    <p><a href="/">Browse the categories</a> instead.</p>
+  <% } else { %>
+    <p class="muted"><%= total %> result<%= total === 1 ? '' : 's' %> for <strong><%= query %></strong>.</p>
+    <% if (partial) { %>
+      <p class="notice notice-warn">Partial matches: fewer than <%= partialThreshold %> documents contain every word, so these contain some of them, the closest first.</p>
+    <% } %>
+    <ul class="doc-list">
+      <% results.forEach(function (r) { %>
+        <li>
+          <a href="<%= r.url %>"><%= r.title %></a>
+          <% if (r.categoryLabel) { %><span class="muted result-category"><%= r.categoryLabel %></span><% } %>
+          <% if (r.summary) { %><span class="doc-summary muted"><%= r.summary %></span><% } %>
+        </li>
+      <% }) %>
+    </ul>
+    <% if (pages > 1) { %><%- include('partials/pager', { basePath: basePath, page: page, pages: pages }) %><% } %>
+  <% } %>
+<% } %>
+
+<%- include('partials/footer') %>

@@ -14,6 +14,7 @@ import {
   setTitle,
 } from '../services/docs.js';
 import { noticeFrom } from '../services/notices.js';
+import { TERM_LISTS, formatTermForm, getDocTerms, parseTermForm, setDocTerms } from '../services/search-terms.js';
 import { pageCount, parsePage } from '../services/pagination.js';
 import { SLUG_MAX } from '../public/js/slug.js';
 import { SUMMARY_MAX, TITLE_MAX, cleanLine, ingestUpload } from '../services/upload.js';
@@ -28,6 +29,7 @@ const NOTICES = {
   'summary-saved': { kind: 'ok', text: 'Summary saved and marked as hand-edited.' },
   'summary-cleared': { kind: 'ok', text: 'Summary cleared.' },
   'categories-saved': { kind: 'ok', text: 'Categories saved. The first one is the primary category.' },
+  'keywords-saved': { kind: 'ok', text: 'Search keywords saved. Searches find them straight away.' },
   unchanged: { kind: 'warn', text: 'Nothing changed.' },
 };
 
@@ -79,7 +81,7 @@ export function adminDocsRouter({ pool, config, needAdmin }) {
       scripts: ['/js/upload.js'],
     });
 
-  const renderDetail = async (res, status, doc, { errors = [], notice = null, titleValue, summaryValue } = {}) => {
+  const renderDetail = async (res, status, doc, { errors = [], notice = null, titleValue, summaryValue, termsValue } = {}) => {
     const tree = await loadTree(pool);
     const categoryIds = await getDocCategoryIds(pool, doc.id);
     const assigned = categoryIds.map((id) => tree.byId.get(id)).filter(Boolean);
@@ -102,6 +104,8 @@ export function adminDocsRouter({ pool, config, needAdmin }) {
       notice,
       titleValue: titleValue ?? doc.title,
       summaryValue: summaryValue ?? doc.summary ?? '',
+      termsValue: termsValue ?? formatTermForm(await getDocTerms(pool, doc.id)),
+      termLists: TERM_LISTS.map(({ list, label, max, length }) => ({ list, label, max, length })),
       titleMax: TITLE_MAX,
       summaryMax: SUMMARY_MAX,
       styles: ['/vendor/katex/katex.min.css', '/css/doc.css'],
@@ -240,6 +244,26 @@ export function adminDocsRouter({ pool, config, needAdmin }) {
       summary: `${summary ? 'Edited' : 'Cleared'} the summary of "${req.doc.slug}".`,
       change: () => setSummary(pool, config, req.doc, summary),
       done: summary ? 'summary-saved' : 'summary-cleared',
+    });
+  });
+
+  // ---------------------------------------------------------------- keywords
+
+  // The four textareas arrive as one form; any refused line saves nothing and
+  // the text typed is shown again with the reasons.
+  router.post('/:id/keywords', needAdmin, verifyCsrf, loadDoc, async (req, res) => {
+    const text = (key) => (typeof req.body[key] === 'string' ? req.body[key] : '');
+    const form = Object.fromEntries(TERM_LISTS.map(({ list }) => [list, text(list)]));
+    const parsed = parseTermForm(form);
+    if (!parsed.ok) return renderDetail(res, 400, req.doc, { errors: parsed.errors, termsValue: form });
+
+    const current = await getDocTerms(pool, req.doc.id);
+    if (JSON.stringify(formatTermForm(current)) === JSON.stringify(formatTermForm(parsed.terms))) return unchanged(req, res);
+    return applyChange(req, res, {
+      action: 'doc.keywords',
+      summary: `Changed the search keywords of "${req.doc.slug}".`,
+      change: () => setDocTerms(pool, config, req.doc, parsed.terms),
+      done: 'keywords-saved',
     });
   });
 

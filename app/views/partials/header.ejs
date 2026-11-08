@@ -16,11 +16,17 @@
     <img src="/imgs/logo.png" alt="" height="36">
     <span>MDpedia</span>
   </a>
+  <form class="search-form" action="/search" method="get" role="search">
+    <label class="visually-hidden" for="site-search">Search the wiki</label>
+    <input id="site-search" name="q" type="search" value="<%= locals.query || '' %>" maxlength="200" placeholder="Search">
+    <button type="submit">Search</button>
+  </form>
   <% if (admin) { %>
   <nav class="site-nav" aria-label="Admin">
     <a href="/admin">Dashboard</a>
     <a href="/admin/docs">Documents</a>
     <a href="/admin/categories">Categories</a>
+    <a href="/admin/search">Search</a>
     <a href="/admin/audit">Audit log</a>
     <a href="/admin/status">Status</a>
     <a href="/admin/password">Password</a>

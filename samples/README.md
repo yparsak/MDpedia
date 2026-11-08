@@ -21,6 +21,16 @@ stops being broken turns its phase test into a test of nothing.
 | `05-oversize.md` | Rejected for exceeding `MAX_UPLOAD_BYTES`. |
 | `06-duplicate-slug.md` | Rejected as a taken slug. Upload **after** `01-plain.md` — it carries the same title and the same explicit slug. |
 
+## Phase 4: Search
+
+| File | What it proves |
+|---|---|
+| `07-search-terms.md` | Short math terms in prose (`ln`, `dx`), prefix search (`deriv` finds *derivative* and *derivatives*), the quoted phrase `"mean value theorem"`, and two-word queries where only one word matches (`tangent unicorn`, for the "partial matches" label). The math itself is not searchable, so the short terms are written out as words. |
+| `07b-search-keywords.md` | Search metadata in front matter: keywords with weights (`gradient`, `x`, `slope`), a key phrase, a synonym and a question. The body holds none of them, so every hit proves the keyword table. Also proves the single-letter rule: `x` finds this doc and nothing in any body. |
+
+`db/seed/search_test_set.example.json` is the evaluation template. It is written against `01-plain.md`
+and `02-math.md`; replace its queries with your own 30 to 50 as your content grows.
+
 ## Phase 5: Wiki links
 
 | File | What it proves |
@@ -62,6 +72,5 @@ uploaded, since they test reconciliation, not the upload path.
 
 ## Not generated yet
 
-`db/seed/search_test_set.example.json` (Phase 4) is the other fixture the
-roadmap names. It needs the 30 to 50 real queries you write against your own
-content, so it is not something to invent here.
+The Phase 4 test set grows with your content: the example file holds a handful of queries against
+the Phase 2 samples, not the 30 to 50 the roadmap asks you to write.

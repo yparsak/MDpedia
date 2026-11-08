@@ -26,11 +26,20 @@ const schema = z
     categories: z.array(z.union([z.number().int().positive(), z.string().max(200)])).max(3).optional(),
     summary: z.string().max(5000).optional(),
     summary_edited: z.boolean().optional(),
+    // Search metadata (Phase 4). Keywords are plain strings or { term, weight };
+    // search-terms.js cleans, caps and de-duplicates all four lists.
+    keywords: z.array(z.union([z.string().max(500), z.object({ term: z.string().max(500), weight: z.number().optional() })])).max(500).optional(),
+    key_phrases: z.array(z.string().max(500)).max(500).optional(),
+    synonyms: z.array(z.string().max(500)).max(500).optional(),
+    questions: z.array(z.string().max(500)).max(500).optional(),
   })
   .passthrough();
 
 // Written first, in this order, so the files read the same every time.
-const KEY_ORDER = ['id', 'slug', 'title', 'published', 'categories', 'summary', 'summary_edited'];
+const KEY_ORDER = [
+  'id', 'slug', 'title', 'published', 'categories', 'summary', 'summary_edited',
+  'keywords', 'key_phrases', 'synonyms', 'questions',
+];
 
 export const bodyHash = (body) => crypto.createHash('sha256').update(body, 'utf8').digest('hex');
 

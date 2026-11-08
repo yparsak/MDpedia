@@ -169,3 +169,40 @@ code { background: #f2f4f5; padding: 0.1em 0.35em; border-radius: 3px; }
   border: 1px solid var(--line);
   border-radius: 4px;
 }
+
+/* Phase 4: search */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+.search-form { display: flex; gap: 0.4rem; flex: 1 1 14rem; max-width: 24rem; margin: 0; }
+.search-form input[type="search"] {
+  flex: 1;
+  min-width: 0;
+  font: inherit;
+  padding: 0.35rem 0.6rem;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+}
+.search-form button {
+  font: inherit;
+  padding: 0.35rem 0.8rem;
+  border: 0;
+  border-radius: 4px;
+  background: var(--accent);
+  color: #fff;
+  cursor: pointer;
+}
+.result-category { display: block; font-size: 0.85rem; }
+.stats { display: flex; flex-wrap: wrap; gap: 1rem; margin: 1rem 0; }
+.stat { border: 1px solid var(--line); border-radius: 6px; padding: 0.6rem 1rem; min-width: 8rem; }
+.stat strong { display: block; font-size: 1.4rem; }
+.eval-pass { color: #1d6b34; }
+.eval-fail { color: #a03030; }

@@ -1,0 +1,64 @@
+<%- include('../partials/header') %>
+
+<h1>Search report</h1>
+
+<p>
+  <a href="/admin/search/eval">Run the evaluation</a> against a test set.
+</p>
+
+<p class="muted">
+  The last <%= report.windowDays %> days. The search log keeps queries for <%= retentionDays %> days and stores no IP address or session.
+  A search counts as a miss when it returned nothing or no result was opened.
+  Rule of thumb: with at least <%= minSearches %> searches in <%= report.windowDays %> days, more than <%= threshold %>% misses suggests keyword search is struggling.
+  It is an indicator, not a gate.
+</p>
+
+<div class="stats">
+  <div class="stat"><strong><%= report.searches %></strong>searches</div>
+  <div class="stat"><strong><%= report.zeroResults %></strong>with no results</div>
+  <div class="stat"><strong><%= report.noClick %></strong>with results, none opened</div>
+  <div class="stat"><strong><%= report.clicked %></strong>ended in a click</div>
+  <div class="stat">
+    <strong><%= report.missRate === null ? 'n/a' : (report.missRate * 100).toFixed(1) + '%' %></strong>miss rate
+  </div>
+</div>
+
+<% if (report.missRate !== null) { %>
+  <% if (!report.enough) { %>
+    <p class="notice notice-warn">Only <%= report.searches %> searches so far, fewer than <%= minSearches %>, so the miss rate is too noisy to judge.</p>
+  <% } else if (report.over) { %>
+    <p class="notice notice-warn">The miss rate is above <%= threshold %>%. Look at the queries below.</p>
+  <% } else { %>
+    <p class="notice notice-ok">The miss rate is within <%= threshold %>%.</p>
+  <% } %>
+<% } %>
+
+<h2>Top queries with no results</h2>
+<% if (report.zeroQueries.length === 0) { %>
+  <p class="muted">None in this period.</p>
+<% } else { %>
+  <table class="log">
+    <thead><tr><th>Query</th><th>Searches</th><th>Last searched</th></tr></thead>
+    <tbody>
+      <% report.zeroQueries.forEach(function (q) { %>
+        <tr><td><%= q.query %></td><td><%= q.searches %></td><td><%= q.lastAt %></td></tr>
+      <% }) %>
+    </tbody>
+  </table>
+<% } %>
+
+<h2>Top queries with results but no click</h2>
+<% if (report.noClickQueries.length === 0) { %>
+  <p class="muted">None in this period.</p>
+<% } else { %>
+  <table class="log">
+    <thead><tr><th>Query</th><th>Searches</th><th>Last searched</th></tr></thead>
+    <tbody>
+      <% report.noClickQueries.forEach(function (q) { %>
+        <tr><td><%= q.query %></td><td><%= q.searches %></td><td><%= q.lastAt %></td></tr>
+      <% }) %>
+    </tbody>
+  </table>
+<% } %>
+
+<%- include('../partials/footer') %>

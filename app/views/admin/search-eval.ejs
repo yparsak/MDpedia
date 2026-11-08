@@ -1,0 +1,68 @@
+<%- include('../partials/header') %>
+
+<h1>Search evaluation</h1>
+
+<% if (errors.length > 0) { %>
+  <div class="notice notice-error" role="alert">
+    <ul>
+      <% errors.forEach(function (e) { %><li><%= e %></li><% }) %>
+    </ul>
+  </div>
+<% } %>
+
+<p class="muted">
+  Upload a test set: a JSON file of queries, each with the slug of the document it should find
+  (see <code>db/seed/search_test_set.example.json</code>). Every query runs through the same search readers use,
+  and nothing is logged. Up to <%= maxQueries %> queries and <%= maxBytes %> bytes.
+  Run it before and after you change any <code>SEARCH_WEIGHT_*</code> value.
+</p>
+
+<form class="form form-wide" method="post" action="/admin/search/eval" enctype="multipart/form-data">
+  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+  <label for="file">Test set (.json)</label>
+  <input id="file" name="file" type="file" accept=".json,application/json" required>
+  <button type="submit">Run the evaluation</button>
+</form>
+
+<% if (report) { %>
+  <h2>Result</h2>
+  <div class="stats">
+    <div class="stat"><strong><%= report.summary.total %></strong>queries</div>
+    <div class="stat">
+      <strong><%= (report.summary.zeroRate * 100).toFixed(1) %>%</strong>zero-result rate (<%= report.summary.zeroResults %>)
+    </div>
+    <div class="stat">
+      <strong><%= (report.summary.inTopRate * 100).toFixed(1) %>%</strong>expected doc in the top <%= topN %> (<%= report.summary.inTop %>)
+    </div>
+  </div>
+  <% if (report.summary.unresolved > 0) { %>
+    <p class="notice notice-warn"><%= report.summary.unresolved %> quer<%= report.summary.unresolved === 1 ? 'y expects' : 'ies expect' %> a slug that is not a published document. Those can never pass.</p>
+  <% } %>
+  <p class="muted">
+    Weights in use: title <%= weights.title %>, keyword <%= weights.keyword %>, phrase <%= weights.phrase %>, synonym <%= weights.synonym %>,
+    question <%= weights.question %>, summary <%= weights.summary %>, body <%= weights.body %>.
+  </p>
+
+  <table class="log">
+    <thead><tr><th>Query</th><th>Expected</th><th>Results</th><th>Rank</th><th>Top <%= topN %></th></tr></thead>
+    <tbody>
+      <% report.rows.forEach(function (r) { %>
+        <tr>
+          <td>
+            <%= r.query %>
+            <% if (r.note) { %><span class="muted"> (<%= r.note %>)</span><% } %>
+          </td>
+          <td>
+            <% r.expected.forEach(function (s, i) { %><%= i > 0 ? ', ' : '' %><code><%= s %></code><% }) %>
+            <% if (r.missing.length > 0) { %><span class="badge badge-warn">not published</span><% } %>
+          </td>
+          <td><%= r.resultCount %><% if (r.partial) { %> <span class="muted">(partial)</span><% } %></td>
+          <td><%= r.rank === null ? 'not found' : r.rank %></td>
+          <td class="<%= r.inTop ? 'eval-pass' : 'eval-fail' %>"><%= r.inTop ? 'yes' : 'no' %></td>
+        </tr>
+      <% }) %>
+    </tbody>
+  </table>
+<% } %>
+
+<%- include('../partials/footer') %>

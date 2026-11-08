@@ -8,6 +8,7 @@ The app never changes the schema. SQL files do, and `make` runs them.
 | `migrations/NNN_name.sql` | One "up" file per phase. Each records itself in `schema_migrations`. |
 | `migrations/NNN_name.down.sql` | Undoes that phase. Destructive. Test database only. |
 | `seed/*.example.sql` | Templates to copy, edit and run (from Phase 3). |
+| `seed/search_test_set.example.json` | The search evaluation test set (Phase 4). Not SQL: upload it on `/admin/search/eval`. |
 
 All tables use `utf8mb4` with an explicit collation (`utf8mb4_unicode_ci`), so
 `Limits` and `limits` collide in unique indexes, which is wanted for slugs.
