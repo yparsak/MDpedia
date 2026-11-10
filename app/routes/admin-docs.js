@@ -16,6 +16,7 @@ import {
 import { noticeFrom } from '../services/notices.js';
 import { TERM_LISTS, formatTermForm, getDocTerms, parseTermForm, setDocTerms } from '../services/search-terms.js';
 import { pageCount, parsePage } from '../services/pagination.js';
+import { getDocLinks } from '../services/wiki-links.js';
 import { SLUG_MAX } from '../public/js/slug.js';
 import { SUMMARY_MAX, TITLE_MAX, cleanLine, ingestUpload } from '../services/upload.js';
 
@@ -106,9 +107,11 @@ export function adminDocsRouter({ pool, config, needAdmin }) {
       summaryValue: summaryValue ?? doc.summary ?? '',
       termsValue: termsValue ?? formatTermForm(await getDocTerms(pool, doc.id)),
       termLists: TERM_LISTS.map(({ list, label, max, length }) => ({ list, label, max, length })),
+      links: await getDocLinks(pool, doc.id),
       titleMax: TITLE_MAX,
       summaryMax: SUMMARY_MAX,
       styles: ['/vendor/katex/katex.min.css', '/css/doc.css'],
+      scripts: ['/js/copy-slug.js'],
     });
   };
 
@@ -128,6 +131,7 @@ export function adminDocsRouter({ pool, config, needAdmin }) {
       filters: FILTERS.map(({ key, label }) => ({ key, label, active: key === filter.key })),
       filterKey: filter.key,
       rows: rows.map(docView),
+      scripts: ['/js/copy-slug.js'],
       page,
       pages: pageCount(total, DOC_PAGE_SIZE),
       total,

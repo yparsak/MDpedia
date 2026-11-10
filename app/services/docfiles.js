@@ -54,6 +54,14 @@ export async function removeDocFile(config, slug) {
   await fs.rm(docPath(config, slug), { force: true });
 }
 
+// Reads an existing file. Resolves to { data, body }.
+// Throws ENOENT if the file is gone and DocFileError if it cannot be parsed.
+export async function readDocFile(config, slug) {
+  const parsed = parseFrontMatter(await fs.readFile(docPath(config, slug), 'utf8'));
+  if (!parsed.ok) throw new DocFileError(`The file cannot be read. ${parsed.error}`);
+  return { data: parsed.data, body: parsed.body };
+}
+
 // Rewrites an existing file with new front matter and the same body.
 // mutate(data) returns the new front matter. Resolves to { data, body }.
 // Throws ENOENT if the file is gone and DocFileError if it cannot be parsed.

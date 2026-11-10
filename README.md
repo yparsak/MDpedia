@@ -7,7 +7,7 @@ A Markdown wiki for a Raspberry Pi: math rendering, keyword search, and AI-assis
 - `db/README.md`: the SQL workflow.
 - `samples/README.md`: the test fixtures.
 
-## Quick start (through Phase 4)
+## Quick start (through Phase 5)
 
 ```bash
 cp .env.example .env     # fill in DB_PASSWORD and SESSION_SECRET (openssl rand -hex 32)
@@ -16,7 +16,7 @@ mkdir -p /srv/MDpedia-data/docs /srv/MDpedia-data/staging   # your DOCS_DIR and 
 make env-check
 make install
 make migrate-status
-make migrate      # applies 000 to 004 (takes a dump first)
+make migrate      # applies 000 to 005 (takes a dump first)
 make admin        # creates the admin; also resets the password
 make start
 ```
@@ -44,6 +44,15 @@ Then open `http://<pi-address>:3000/admin` and log in.
   no IP or session and is pruned after `SEARCH_LOG_RETENTION_DAYS`); `/admin/search/eval` runs a test
   set (template: `db/seed/search_test_set.example.json`) and reports the zero-result rate and how often
   the expected doc is in the top 3.
+- Wiki links: `[[slug]]` and `[[slug|display text]]` link one document to another. The target is trimmed
+  and lowercased, and matched against the slug (never the title). A link to a published doc becomes
+  `/doc?id=<id>` and shows the target's title unless display text is given. A link to a doc that does not
+  exist, or is not published, is drawn as a marked dead span for everyone and never shows the title.
+  `[[links]]` inside code spans, code blocks and Markdown links are left alone. The HTML is stored, so
+  publishing, unpublishing or retitling a doc renders the docs that link to it again (at most 200).
+  Each published doc lists "What links here". `/admin/links` and the dashboard report unresolved links,
+  and a doc's admin page shows its own links. The admin lists show each slug with a Copy button, and a
+  `slug:` in the front matter of an upload is used when it is free.
 - `/admin/status` is the Phase 0 status page (it was `/` before Phase 2). `/healthz` is unchanged.
 - Each document is stored as `<slug>.md` in `DOCS_DIR`, with `id`, `slug`, `title`,
   `published`, `categories` (ids) and, when set, `keywords`, `key_phrases`, `synonyms` and `questions` in its front matter. The file is canonical; the database is an index.

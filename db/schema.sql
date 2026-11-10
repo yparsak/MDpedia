@@ -1,4 +1,4 @@
--- Full current schema for a fresh install (after Phase 4).
+-- Full current schema for a fresh install (after Phase 5).
 -- Regenerate with `make schema-dump` after every phase. The first dump will
 -- reformat this file into mariadb-dump's style; that is expected. Commit that
 -- version as the baseline, and later runs should then leave it unchanged.
@@ -137,4 +137,14 @@ CREATE TABLE IF NOT EXISTS search_daily (
   PRIMARY KEY (day)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-INSERT IGNORE INTO schema_migrations (version) VALUES ('000_schema_migrations'), ('001_admin'), ('002_documents'), ('003_categories'), ('004_search');
+-- The [[slug]] targets of each doc (Phase 5). Slugs are unique and permanent, so
+-- there is no target id: docs.slug is the join.
+CREATE TABLE IF NOT EXISTS doc_links (
+  source_doc_id INT UNSIGNED NOT NULL,
+  target_slug   VARCHAR(200) NOT NULL,
+  PRIMARY KEY (source_doc_id, target_slug),
+  KEY idx_doc_links_target (target_slug),
+  CONSTRAINT fk_doc_links_source FOREIGN KEY (source_doc_id) REFERENCES docs (id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+INSERT IGNORE INTO schema_migrations (version) VALUES ('000_schema_migrations'), ('001_admin'), ('002_documents'), ('003_categories'), ('004_search'), ('005_links');

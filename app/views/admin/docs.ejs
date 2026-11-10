@@ -32,7 +32,10 @@
             <a href="/admin/docs/<%= d.id %>"><%= d.title %></a>
             <% if (d.hasRawHtml) { %><span class="badge badge-warn">raw HTML</span><% } %>
           </td>
-          <td><code><%= d.slug %></code></td>
+          <td>
+            <code><%= d.slug %></code>
+            <button type="button" class="link-button" data-copy="<%= d.slug %>" aria-label="Copy the slug <%= d.slug %>">Copy</button>
+          </td>
           <td><span class="badge badge-<%= d.status %>"><%= d.statusLabel %></span></td>
           <td><%= d.updatedAt %></td>
         </tr>

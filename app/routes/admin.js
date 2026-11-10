@@ -8,8 +8,10 @@ import { countByStatus } from '../services/docs.js';
 import { noticeFrom } from '../services/notices.js';
 import { pageCount, parsePage } from '../services/pagination.js';
 import { getStatus } from '../services/status.js';
+import { countUnresolved } from '../services/wiki-links.js';
 import { adminCategoriesRouter } from './admin-categories.js';
 import { adminDocsRouter } from './admin-docs.js';
+import { adminLinksRouter } from './admin-links.js';
 import { adminSearchRouter } from './admin-search.js';
 import { findByUsername, normalizeUsername, recordLogin, setPassword } from '../services/admins.js';
 import { hashPassword, passwordProblems, verifyAgainstDummy, verifyPassword } from '../services/passwords.js';
@@ -143,6 +145,7 @@ export function adminRouter({ pool, config, version }) {
       notice: noticeFor(req),
       docCounts,
       categoryCounts,
+      unresolvedLinks: await countUnresolved(pool),
       sessionExpires: req.session.expiresAt,
       idleMinutes: config.session.idleMinutes,
       recent: rows.map(auditRow),
@@ -200,6 +203,10 @@ export function adminRouter({ pool, config, version }) {
   // ----------------------------------------------------------------- search
 
   router.use('/search', adminSearchRouter({ pool, config, needAdmin }));
+
+  // ------------------------------------------------------------------ links
+
+  router.use('/links', adminLinksRouter({ pool, needAdmin }));
 
   // -------------------------------------------------------- change password
 

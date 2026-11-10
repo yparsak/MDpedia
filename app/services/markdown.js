@@ -1,8 +1,8 @@
 // The rendering pipeline (brainstorm 5.8, 5.16, section 7). Markdown in, sanitized
 // HTML and a plain-text copy out. Stages, in order:
 //   parse (CommonMark, GFM, math)  ->  plain text  ->  raw HTML and images made inert
-//   ->  to HTML  ->  sanitize  ->  title de-dup, heading ids, table of contents, anchors
-//   ->  KaTeX  ->  syntax highlighting.
+//   ->  to HTML  ->  sanitize  ->  [[wiki links]]  ->  title de-dup, heading ids,
+//   table of contents, anchors  ->  KaTeX  ->  syntax highlighting.
 // The sanitizer runs before KaTeX so KaTeX's many spans and inline styles are
 // not stripped or whitelisted blindly. Do not add rehype-raw or allowDangerousHtml.
 
@@ -23,6 +23,14 @@ import { toString as mdastToString } from 'mdast-util-to-string';
 
 const TOC_MIN_HEADINGS = 4;
 const SAFE_LINK_SCHEMES = ['http', 'https', 'mailto'];
+
+// [[target]] and [[target|display text]] (brainstorm 5.9). A target longer than
+// LINK_TARGET_MAX, or past the first MAX_LINK_TARGETS different ones in a doc,
+// is drawn as broken and not recorded, so one doc cannot flood doc_links.
+const WIKI_LINK = /\[\[([^[\]|\n]*)(?:\|([^[\]\n]*))?\]\]/g;
+const WIKI_LINK_SKIPPED_TAGS = new Set(['a', 'code', 'pre']);
+export const LINK_TARGET_MAX = 200;
+export const MAX_LINK_TARGETS = 200;
 
 // Block-level HTML becomes a code block, inline HTML becomes text; either way
 // the author sees the markup as visible text instead of losing it silently.
@@ -152,6 +160,74 @@ function rehypeExternalLinks() {
   };
 }
 
+export const normalizeLinkTarget = (text) => String(text).trim().toLowerCase();
+
+// The pieces of a text value: { text } for plain text, { target, display } for a
+// link. null when the value holds no link. An empty target stays plain text.
+function splitWikiLinks(value) {
+  const parts = [];
+  let end = 0;
+  for (const match of value.matchAll(WIKI_LINK)) {
+    const target = normalizeLinkTarget(match[1]);
+    if (target === '') continue;
+    if (match.index > end) parts.push({ text: value.slice(end, match.index) });
+    parts.push({ target, display: (match[2] ?? '').replace(/\s+/g, ' ').trim() });
+    end = match.index + match[0].length;
+  }
+  if (parts.length === 0) return null;
+  if (end < value.length) parts.push({ text: value.slice(end) });
+  return parts;
+}
+
+// A link to a published doc shows its title unless the author gave display text.
+// Anything else is drawn as a marked, dead span: it never reveals the title of a
+// doc that is unpublished (brainstorm 5.10), and it is not an anchor.
+function wikiLinkElement({ target, display }, doc) {
+  if (doc?.published) {
+    return element('a', { className: ['wikilink'], href: `/doc?id=${doc.id}` }, [text(display || doc.title)]);
+  }
+  return element('span', { className: ['wikilink-broken'], title: 'Broken link: no published document has this address' }, [
+    text(display || target),
+  ]);
+}
+
+// Turns [[links]] in prose into anchors. Runs after the sanitizer, on text nodes
+// only, so code, links already in the page and the sanitizer's view of the
+// author's markup are untouched; the anchors are built here from a numeric id.
+// file.data.resolveLinks(targets) resolves to Map(slug -> { id, title, published }).
+// file.data.linkTargets receives the recorded targets, for the doc_links table.
+function rehypeWikiLinks() {
+  return async (tree, file) => {
+    const found = [];
+    visit(tree, (node, index, parent) => {
+      if (node.type === 'element' && WIKI_LINK_SKIPPED_TAGS.has(node.tagName)) return SKIP;
+      if (node.type !== 'text' || !node.value.includes('[[')) return undefined;
+      const parts = splitWikiLinks(node.value);
+      if (parts) found.push({ parent, index, parts });
+      return undefined;
+    });
+
+    const recorded = new Set();
+    for (const { parts } of found) {
+      for (const { target } of parts) {
+        if (target !== undefined && target.length <= LINK_TARGET_MAX && (recorded.has(target) || recorded.size < MAX_LINK_TARGETS)) {
+          recorded.add(target);
+        }
+      }
+    }
+    file.data.linkTargets = [...recorded];
+    const resolved = recorded.size > 0 ? await file.data.resolveLinks([...recorded]) : new Map();
+
+    // Last first, so the indexes of earlier siblings stay valid while splicing.
+    for (const { parent, index, parts } of found.reverse()) {
+      const nodes = parts.map((part) =>
+        part.target === undefined ? text(part.text) : wikiLinkElement(part, recorded.has(part.target) ? resolved.get(part.target) : null),
+      );
+      parent.children.splice(index, 1, ...nodes);
+    }
+  };
+}
+
 // trust stays off. throwOnError false shows a bad equation as an error instead
 // of failing the page, and maxExpand/maxSize stop a hostile macro from hanging
 // the server (brainstorm 5.8). strict "ignore" keeps KaTeX from writing warnings
@@ -166,6 +242,7 @@ const processor = unified()
   .use(remarkSafeContent)
   .use(remarkRehype)
   .use(rehypeSanitize, sanitizeSchema)
+  .use(rehypeWikiLinks)
   .use(rehypeDropDuplicateTitle)
   .use(rehypeSlug)
   .use(rehypeToc)
@@ -187,13 +264,18 @@ export function firstHeading(body) {
   return heading ? mdastToString(heading).trim() : null;
 }
 
-// Resolves to { html, plainText, hasRawHtml }. The title is the one stored for
-// the doc, so a first H1 that repeats it is not rendered twice.
-export async function renderMarkdown(body, { title }) {
-  const file = await processor.process({ value: body, data: { title } });
+const noLinksResolved = async () => new Map();
+
+// Resolves to { html, plainText, hasRawHtml, linkTargets }. The title is the one
+// stored for the doc, so a first H1 that repeats it is not rendered twice.
+// resolveLinks looks up [[link]] targets (see wiki-links.js); without it every
+// link is drawn as broken.
+export async function renderMarkdown(body, { title, resolveLinks = noLinksResolved }) {
+  const file = await processor.process({ value: body, data: { title, resolveLinks } });
   return {
     html: String(file),
     plainText: file.data.plainText ?? '',
     hasRawHtml: Boolean(file.data.hasRawHtml),
+    linkTargets: file.data.linkTargets ?? [],
   };
 }

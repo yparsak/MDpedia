@@ -13,6 +13,7 @@ import { getDocCategoryIds, listPublishedInCategory } from '../services/doc-cate
 import { docLinks } from '../services/doc-links.js';
 import { getPublishedById, getPublishedBySlug, listPublished } from '../services/docs.js';
 import { pageCount, parsePage } from '../services/pagination.js';
+import { getBacklinks } from '../services/wiki-links.js';
 
 const HOME_PAGE_SIZE = 50;
 
@@ -54,6 +55,7 @@ export function readerRouter({ pool }) {
       doc: { title: doc.title, html: doc.html, updatedAt: doc.updated_at },
       crumbs: categories[0] ? crumbsFor(categories[0]) : [],
       alsoIn: categories.slice(1).map((n) => ({ label: pathLabel(n), url: categoryUrl(n) })),
+      backlinks: await docLinks(pool, tree, await getBacklinks(pool, doc)),
       styles: ['/vendor/katex/katex.min.css', '/css/doc.css'],
     });
   }

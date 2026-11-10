@@ -15,7 +15,8 @@ import { parseFrontMatter } from './frontmatter.js';
 import { cleanLine } from './text.js';
 import { createDoc, slugTaken } from './docs.js';
 import { termsFromFrontMatter } from './search-terms.js';
-import { firstHeading, renderMarkdown } from './markdown.js';
+import { firstHeading } from './markdown.js';
+import { renderWithLinks } from './wiki-links.js';
 
 // Moved to text.js so search-terms.js can use it without a cycle; kept exported here for the existing imports.
 export { cleanLine };
@@ -110,7 +111,7 @@ export async function ingestUpload(pool, config, { file, formTitle, formSlug }) 
 
   const summary = cleanLine(data.summary).slice(0, SUMMARY_MAX) || null;
   const extraFrontMatter = Object.fromEntries(Object.entries(data).filter(([key]) => !KNOWN_KEYS.includes(key)));
-  const rendered = await renderMarkdown(body, { title });
+  const rendered = await renderWithLinks(pool, body, title);
   const terms = termsFromFrontMatter(data);
 
   try {

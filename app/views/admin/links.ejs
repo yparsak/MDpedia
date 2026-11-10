@@ -1,0 +1,37 @@
+<%- include('../partials/header') %>
+
+<h1>Unresolved links</h1>
+
+<p class="muted">
+  A <code>[[link]]</code> is unresolved while no published document has its slug. It is shown to readers as a
+  marked, dead link. It starts working by itself when a document with that slug is published.
+  A link to an unpublished document is listed here too, and readers are not told its title.
+</p>
+
+<% if (total === 0) { %>
+  <p class="notice notice-ok">Every link points at a published document.</p>
+<% } else { %>
+  <p class="muted"><%= total %> unresolved link<%= total === 1 ? '' : 's' %>.</p>
+  <table class="log">
+    <thead><tr><th>In document</th><th>Links to</th><th>Why</th></tr></thead>
+    <tbody>
+      <% rows.forEach(function (r) { %>
+        <tr>
+          <td><a href="/admin/docs/<%= r.sourceId %>"><%= r.sourceTitle %></a></td>
+          <td><code><%= r.slug %></code></td>
+          <td>
+            <% if (r.state === 'missing') { %>
+              <span class="badge badge-warn">no document has this slug</span>
+            <% } else { %>
+              <span class="badge badge-unpublished">document not published</span>
+            <% } %>
+          </td>
+        </tr>
+      <% }) %>
+    </tbody>
+  </table>
+<% } %>
+
+<%- include('../partials/pager', { basePath: '/admin/links?', page: page, pages: pages }) %>
+
+<%- include('../partials/footer') %>

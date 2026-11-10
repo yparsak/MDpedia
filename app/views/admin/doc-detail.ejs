@@ -15,7 +15,11 @@
 
 <table class="facts">
   <tr><th scope="row">Status</th><td><span class="badge badge-<%= doc.status %>"><%= doc.statusLabel %></span></td></tr>
-  <tr><th scope="row">Slug</th><td><code><%= doc.slug %></code> (permanent)</td></tr>
+  <tr><th scope="row">Slug</th><td>
+    <code><%= doc.slug %></code> (permanent)
+    <button type="button" class="link-button" data-copy="<%= doc.slug %>" aria-label="Copy the slug <%= doc.slug %>">Copy</button>
+    <span class="field-note">Link to it from another document with <code>[[<%= doc.slug %>]]</code>.</span>
+  </td></tr>
   <tr><th scope="row">Id</th><td><%= doc.id %></td></tr>
   <tr>
     <th scope="row">Reader links</th>
@@ -127,6 +131,40 @@
   <% }) %>
   <button type="submit">Save search keywords</button>
 </form>
+
+<h2>Links in this document</h2>
+<% if (links.length === 0) { %>
+  <p class="muted">No <code>[[links]]</code>.</p>
+<% } else { %>
+  <% const unresolved = links.filter(function (l) { return l.state !== 'ok'; }).length; %>
+  <% if (unresolved > 0) { %>
+    <p class="notice notice-warn">
+      <%= unresolved %> of <%= links.length %> link<%= links.length === 1 ? '' : 's' %> do not work yet.
+      Check the slugs for typos. <a href="/admin/links">All unresolved links</a>
+    </p>
+  <% } %>
+  <table class="log">
+    <thead><tr><th>Links to</th><th>State</th></tr></thead>
+    <tbody>
+      <% links.forEach(function (l) { %>
+        <tr>
+          <td><code><%= l.slug %></code></td>
+          <td>
+            <% if (l.state === 'ok') { %>
+              <span class="badge badge-published">works</span>
+              <a href="/admin/docs/<%= l.targetId %>"><%= l.title %></a>
+            <% } else if (l.state === 'unpublished') { %>
+              <span class="badge badge-unpublished">document not published</span>
+              <a href="/admin/docs/<%= l.targetId %>"><%= l.title %></a>
+            <% } else { %>
+              <span class="badge badge-warn">no document has this slug</span>
+            <% } %>
+          </td>
+        </tr>
+      <% }) %>
+    </tbody>
+  </table>
+<% } %>
 
 <h2>Preview</h2>
 <div class="doc-body doc-preview">

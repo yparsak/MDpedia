@@ -8,8 +8,8 @@
 
 import { bodyHash, serializeFrontMatter } from './frontmatter.js';
 import { createDocFile, removeDocFile, updateDocFile } from './docfiles.js';
-import { renderMarkdown } from './markdown.js';
 import { emptyTerms, insertTerms, termsToFrontMatter } from './search-terms.js';
+import { insertLinks, renderWithLinks, rerenderDependents } from './wiki-links.js';
 
 export const STATUS_LABELS = {
   ready: 'Ready for review',
@@ -94,6 +94,7 @@ export async function createDoc(pool, config, { slug, title, summary, extraFront
     );
     const id = result.insertId;
     await insertTerms(conn, id, terms);
+    await insertLinks(conn, id, rendered.linkTargets);
     const text = serializeFrontMatter(
       {
         ...extraFrontMatter,
@@ -123,7 +124,8 @@ export async function createDoc(pool, config, { slug, title, summary, extraFront
 // ----------------------------------------------------------------- changing
 
 // Publish, re-publish and unpublish. The front matter flag changes first so a
-// database rebuild keeps the state (brainstorm 5.10).
+// database rebuild keeps the state (brainstorm 5.10). Docs that link here are
+// rendered again, since their links to this one work only while it is published.
 export async function setPublished(pool, config, doc, published) {
   await updateDocFile(config, doc.slug, (data) => ({ ...data, published }));
   if (published) {
@@ -131,17 +133,21 @@ export async function setPublished(pool, config, doc, published) {
   } else {
     await pool.query("UPDATE docs SET published = 0, status = 'unpublished' WHERE id = ?", [doc.id]);
   }
+  await rerenderDependents(pool, config, doc);
 }
 
 // The slug never changes. The page is rendered again because a first heading
-// that repeated the old title is dropped only while it matches the title.
+// that repeated the old title is dropped only while it matches the title. A
+// published doc's title is the text of the links that name no display text, so
+// the docs that link here are rendered again too.
 export async function setTitle(pool, config, doc, title) {
   const { body } = await updateDocFile(config, doc.slug, (data) => ({ ...data, title }));
-  const rendered = await renderMarkdown(body, { title });
+  const rendered = await renderWithLinks(pool, body, title);
   await pool.query(
     'UPDATE docs SET title = ?, html = ?, plain_text = ?, has_raw_html = ?, body_hash = ? WHERE id = ?',
     [title, rendered.html, rendered.plainText, rendered.hasRawHtml ? 1 : 0, bodyHash(body), doc.id],
   );
+  if (doc.published) await rerenderDependents(pool, config, doc);
 }
 
 // A saved summary is flagged as hand-edited; an empty one clears the summary and the flag.

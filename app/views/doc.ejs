@@ -15,4 +15,14 @@
   </div>
 </article>
 
+<% if (backlinks.length > 0) { %>
+  <section class="backlinks" aria-labelledby="backlinks-heading">
+    <h2 id="backlinks-heading">What links here</h2>
+    <ul>
+      <% backlinks.forEach(function (b) { %><li><a href="<%= b.url %>"><%= b.title %></a></li>
+      <% }) %>
+    </ul>
+  </section>
+<% } %>
+
 <%- include('partials/footer') %>

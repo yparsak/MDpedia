@@ -20,6 +20,16 @@
 }
 .doc-body pre code { background: none; padding: 0; }
 
+.wikilink-broken {
+  color: #b00020;
+  text-decoration: underline dotted;
+  cursor: help;
+}
+
+.backlinks { margin-top: 2rem; border-top: 1px solid var(--line); }
+.backlinks h2 { font-size: 1.1rem; margin: 1rem 0 0.25rem; }
+.backlinks ul { margin: 0; padding-left: 1.2rem; }
+
 .heading-anchor { margin-left: 0.4rem; text-decoration: none; opacity: 0; }
 .doc-body :is(h1, h2, h3, h4, h5, h6):hover .heading-anchor,
 .heading-anchor:focus { opacity: 1; }
