@@ -92,7 +92,7 @@ env-check:
 	echo "$(ENV_FILE) OK. database=$$DB_NAME user=$$DB_USER docs=$$DOCS_DIR port=$$PORT"
 	@$(LOAD_ENV) \
 	if [ -n "$$AI_API_KEY" ]; then echo "AI provider: $$AI_PROVIDER model=$${AI_MODEL:-<unset>} key=set"; \
-	else echo "AI provider: key not set (fine before Phase 6)"; fi
+	else echo "AI provider: key not set (AI extraction is off; uploads skip the queue)"; fi
 
 # ------------------------------------------------------------------- npm tasks
 

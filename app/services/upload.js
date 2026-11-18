@@ -2,17 +2,18 @@
 // anything is written, and each failure names its real reason so the admin can
 // fix it: wrong extension, size, null byte, encoding, front matter, title, slug.
 //
-// A new upload always starts unpublished. An `id`, `published` or `categories`
-// in the uploaded front matter is ignored: the database assigns the id, nothing
+// A new upload always starts unpublished. An `id`, `published`, `categories` or
+// `ai` in the uploaded front matter is ignored: the database assigns the id, nothing
 // in an upload may publish itself, and category ids from another wiki would
 // point at the wrong categories here. Categories are assigned on the doc page.
 // Search keywords, key phrases, synonyms and questions are kept (cleaned and
-// capped), since they are plain text that harms nothing.
+// capped), since they are plain text that harms nothing; AI extraction replaces them.
 
 import path from 'node:path';
 import { SLUG_MAX, SLUG_PATTERN, slugify } from '../public/js/slug.js';
 import { parseFrontMatter } from './frontmatter.js';
 import { cleanLine } from './text.js';
+import { aiConfigured } from '../config.js';
 import { createDoc, slugTaken } from './docs.js';
 import { termsFromFrontMatter } from './search-terms.js';
 import { firstHeading } from './markdown.js';
@@ -25,7 +26,7 @@ export const SUMMARY_MAX = 600;
 
 const KNOWN_KEYS = [
   'id', 'slug', 'title', 'published', 'categories', 'summary', 'summary_edited',
-  'keywords', 'key_phrases', 'synonyms', 'questions',
+  'keywords', 'key_phrases', 'synonyms', 'questions', 'ai',
 ];
 
 const fail = (status, ...errors) => ({ ok: false, status, errors });
@@ -81,7 +82,7 @@ export function resolveSlug({ formSlug, frontMatterSlug, title }) {
 
 const slugTakenResult = (slug) => fail(409, `The slug "${slug}" is already taken. Slugs are permanent and unique, so choose another.`);
 
-// Resolves to { ok: true, id, slug } or { ok: false, status, errors }.
+// Resolves to { ok: true, id, slug, queued } or { ok: false, status, errors }.
 export async function ingestUpload(pool, config, { file, formTitle, formSlug }) {
   const checked = validateUploadFile({
     buffer: file?.buffer,
@@ -114,9 +115,11 @@ export async function ingestUpload(pool, config, { file, formTitle, formSlug }) 
   const rendered = await renderWithLinks(pool, body, title);
   const terms = termsFromFrontMatter(data);
 
+  // With the AI configured the doc waits for extraction; without it, it is ready for review at once.
+  const queued = aiConfigured(config);
   try {
-    const id = await createDoc(pool, config, { slug, title, summary, extraFrontMatter, terms, body, rendered });
-    return { ok: true, id, slug };
+    const id = await createDoc(pool, config, { slug, title, summary, extraFrontMatter, terms, body, rendered, queue: queued });
+    return { ok: true, id, slug, queued };
   } catch (err) {
     // Lost a race for the slug, or a stray file already holds the name.
     if (err.code === 'ER_DUP_ENTRY' || err.code === 'EEXIST') return slugTakenResult(slug);

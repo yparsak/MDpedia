@@ -9,6 +9,9 @@ import { noticeFrom } from '../services/notices.js';
 import { pageCount, parsePage } from '../services/pagination.js';
 import { getStatus } from '../services/status.js';
 import { countUnresolved } from '../services/wiki-links.js';
+import { aiOverview } from '../services/ai-status.js';
+import { adminAiRouter } from './admin-ai.js';
+import { adminJobsRouter } from './admin-jobs.js';
 import { adminCategoriesRouter } from './admin-categories.js';
 import { adminDocsRouter } from './admin-docs.js';
 import { adminLinksRouter } from './admin-links.js';
@@ -146,6 +149,7 @@ export function adminRouter({ pool, config, version }) {
       docCounts,
       categoryCounts,
       unresolvedLinks: await countUnresolved(pool),
+      ai: await aiOverview(pool, config),
       sessionExpires: req.session.expiresAt,
       idleMinutes: config.session.idleMinutes,
       recent: rows.map(auditRow),
@@ -203,6 +207,11 @@ export function adminRouter({ pool, config, version }) {
   // ----------------------------------------------------------------- search
 
   router.use('/search', adminSearchRouter({ pool, config, needAdmin }));
+
+  // ------------------------------------------------------------ AI and jobs
+
+  router.use('/ai', adminAiRouter({ pool, config, needAdmin }));
+  router.use('/jobs', adminJobsRouter({ pool, config, needAdmin }));
 
   // ------------------------------------------------------------------ links
 

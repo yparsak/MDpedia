@@ -2,17 +2,23 @@
 // The file is canonical and the table is a derived index, so every change writes
 // the file first (see docfiles.js) and then updates the row.
 //
-// Phase 2 has three states. A new upload is "ready" (ready for review, no AI
-// yet), publishing makes it "published", unpublishing makes it "unpublished".
+// The states: a new upload is "uploaded" and waits in the AI queue, "processing"
+// while the AI runs, then "ready" (ready for review), or "failed" when the job
+// gave up. With the AI not configured an upload skips the queue and is "ready"
+// at once. Publishing makes a doc "published", unpublishing "unpublished".
 // There is no delete in v1.
 
 import { bodyHash, serializeFrontMatter } from './frontmatter.js';
 import { createDocFile, removeDocFile, updateDocFile } from './docfiles.js';
+import { enqueueJob } from './jobs.js';
 import { emptyTerms, insertTerms, termsToFrontMatter } from './search-terms.js';
 import { insertLinks, renderWithLinks, rerenderDependents } from './wiki-links.js';
 
 export const STATUS_LABELS = {
+  uploaded: 'Uploaded',
+  processing: 'Processing',
   ready: 'Ready for review',
+  failed: 'Failed',
   published: 'Published',
   unpublished: 'Unpublished',
 };
@@ -23,7 +29,10 @@ const LIST_COLUMNS =
 // ------------------------------------------------------------------ reading
 
 export async function getDocById(pool, id) {
-  const [rows] = await pool.query(`SELECT ${LIST_COLUMNS}, body_hash, html FROM docs WHERE id = ?`, [id]);
+  const [rows] = await pool.query(
+    `SELECT ${LIST_COLUMNS}, body_hash, html, ai_provider, ai_model, ai_prompt_version, ai_at FROM docs WHERE id = ?`,
+    [id],
+  );
   return rows[0] ?? null;
 }
 
@@ -64,10 +73,10 @@ export async function listPublished(pool, { limit, offset }) {
   return { total: Number(total), rows };
 }
 
-// { total, ready, published, unpublished } in one query.
+// { total, uploaded, processing, ready, failed, published, unpublished } in one query.
 export async function countByStatus(pool) {
   const [rows] = await pool.query('SELECT status, COUNT(*) AS n FROM docs GROUP BY status');
-  const counts = { total: 0, ready: 0, published: 0, unpublished: 0 };
+  const counts = { total: 0, uploaded: 0, processing: 0, ready: 0, failed: 0, published: 0, unpublished: 0 };
   for (const { status, n } of rows) {
     counts.total += Number(n);
     if (Object.hasOwn(counts, status)) counts[status] = Number(n);
@@ -81,7 +90,8 @@ export async function countByStatus(pool) {
 // other is undone, so a doc never exists in only one place. Throws ER_DUP_ENTRY
 // (slug taken in the table) or EEXIST (a file with that name is already in the
 // docs directory); the caller turns both into "slug taken". Resolves to the new id.
-export async function createDoc(pool, config, { slug, title, summary, extraFrontMatter, terms = emptyTerms(), body, rendered }) {
+// queue: true starts the doc as "uploaded" with an AI job, in the same transaction.
+export async function createDoc(pool, config, { slug, title, summary, extraFrontMatter, terms = emptyTerms(), body, rendered, queue = false }) {
   const hash = bodyHash(body);
   const conn = await pool.getConnection();
   let fileWritten = false;
@@ -89,12 +99,13 @@ export async function createDoc(pool, config, { slug, title, summary, extraFront
     await conn.beginTransaction();
     const [result] = await conn.query(
       `INSERT INTO docs (slug, title, status, published, summary, summary_edited, has_raw_html, body_hash, html, plain_text)
-       VALUES (?, ?, 'ready', 0, ?, ?, ?, ?, ?, ?)`,
-      [slug, title, summary, summary ? 1 : 0, rendered.hasRawHtml ? 1 : 0, hash, rendered.html, rendered.plainText],
+       VALUES (?, ?, ?, 0, ?, ?, ?, ?, ?, ?)`,
+      [slug, title, queue ? 'uploaded' : 'ready', summary, summary ? 1 : 0, rendered.hasRawHtml ? 1 : 0, hash, rendered.html, rendered.plainText],
     );
     const id = result.insertId;
     await insertTerms(conn, id, terms);
     await insertLinks(conn, id, rendered.linkTargets);
+    if (queue) await enqueueJob(conn, id);
     const text = serializeFrontMatter(
       {
         ...extraFrontMatter,

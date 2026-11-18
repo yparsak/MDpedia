@@ -1,0 +1,85 @@
+<%- include('../partials/header') %>
+
+<h1>AI Lab</h1>
+
+<p class="muted">
+  Runs the configured model over a document and shows what came back. Nothing is saved: no file, no database row and
+  no job. Use it to compare models: change <code>AI_MODEL</code> in <code>.env</code>, restart, and run the same documents again.
+  The document text is sent to the AI provider. Every call counts against the daily cap.
+</p>
+
+<% if (errors.length > 0) { %>
+  <div class="notice notice-error" role="alert">
+    <ul>
+      <% errors.forEach(function (e) { %><li><%= e %></li><% }) %>
+    </ul>
+  </div>
+<% } %>
+
+<table class="facts">
+  <tr><th scope="row">Provider</th><td><code><%= provider %></code></td></tr>
+  <tr><th scope="row">Model</th><td><% if (model) { %><code><%= model %></code><% } else { %><span class="muted">not set</span><% } %></td></tr>
+  <tr><th scope="row">Calls today</th><td><%= usage.used %> of <%= usage.cap %></td></tr>
+</table>
+
+<% if (!configured) { %>
+  <p class="notice notice-warn">
+    The AI is not configured. Set <code>AI_BASE_URL</code>, <code>AI_API_KEY</code> and <code>AI_MODEL</code> in
+    <code>.env</code> and restart the app. Until then, uploads skip the queue and are ready for review at once.
+  </p>
+<% } else { %>
+  <h2>Test connection</h2>
+  <% if (connection) { %>
+    <% if (connection.ok) { %>
+      <p class="notice notice-ok">Connected. The provider reports the model <code><%= connection.model %></code>.</p>
+    <% } else { %>
+      <p class="notice notice-error" role="alert"><%= connection.message %></p>
+    <% } %>
+  <% } %>
+  <form class="inline-form" method="post" action="/admin/ai/test">
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <button type="submit" class="button">Test connection</button>
+  </form>
+
+  <h2>Run extraction</h2>
+  <form class="form form-wide" method="post" action="/admin/ai/run" enctype="multipart/form-data" autocomplete="off">
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <label for="doc_id">A document already in the wiki</label>
+    <select id="doc_id" name="doc_id">
+      <option value="">None, I will upload a file</option>
+      <% docs.forEach(function (d) { %><option value="<%= d.id %>"><%= d.title %> (<%= d.slug %>)</option><% }) %>
+    </select>
+    <p class="field-note">The <%= docLimit %> newest are listed.</p>
+
+    <label for="file">Or a Markdown file</label>
+    <input id="file" name="file" type="file" accept=".md,text/markdown">
+    <p class="field-note">Up to <%= maxBytes %> bytes. Ignored when a document is chosen above.</p>
+
+    <button type="submit">Run extraction</button>
+  </form>
+<% } %>
+
+<% if (run) { %>
+  <h2>Result for "<%= run.title %>"</h2>
+  <table class="facts">
+    <tr>
+      <th scope="row">Schema</th>
+      <td>
+        <% if (run.passed) { %><span class="badge badge-published">passed</span><% } else { %><span class="badge badge-failed">failed</span><% } %>
+      </td>
+    </tr>
+    <tr><th scope="row">Time taken</th><td><%= run.seconds %> seconds</td></tr>
+    <% if (run.passed) { %>
+      <tr><th scope="row">Model</th><td><code><%= run.model %></code>, prompt <code><%= run.promptVersion %></code></td></tr>
+      <tr><th scope="row">Calls used</th><td><%= run.calls %><% if (run.calls > 1) { %> (the first reply needed a repair try)<% } %></td></tr>
+    <% } %>
+  </table>
+  <% if (run.error) { %>
+    <p class="notice notice-error" role="alert"><%= run.error %></p>
+  <% } else { %>
+    <p class="muted">The validated output, as it would be stored. Categories come only from your tree.</p>
+    <pre class="ai-output"><%= run.json %></pre>
+  <% } %>
+<% } %>
+
+<%- include('../partials/footer') %>

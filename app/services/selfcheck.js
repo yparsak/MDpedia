@@ -3,6 +3,7 @@
 // page, not a reason to crash.
 
 import fs from 'node:fs/promises';
+import { aiConfigured } from '../config.js';
 import { exportCategories, EXPORT_FILE } from './categories-export.js';
 import { getStatus } from './status.js';
 
@@ -52,6 +53,12 @@ export async function runSelfCheck(pool, config) {
   if (docs.dev !== null && staging.dev !== null && docs.dev !== staging.dev) {
     lines.push({ level: 'warn', text: 'docs and staging are on different filesystems; the atomic rename in Phase 2 will fail' });
   }
+
+  lines.push(
+    aiConfigured(config)
+      ? { level: 'ok', text: `AI: ${config.ai.provider}, model ${config.ai.model}, queue worker on` }
+      : { level: 'warn', text: 'AI: AI_BASE_URL, AI_API_KEY or AI_MODEL is not set; uploads skip extraction and stay "Ready for review"' },
+  );
 
   // Refresh categories.yaml, so a tree seeded with `make seed-categories` is exported without waiting for a change.
   if (status.schema === 'ok' && data.level === 'ok') {

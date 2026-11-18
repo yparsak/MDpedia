@@ -32,13 +32,15 @@ const schema = z
     key_phrases: z.array(z.string().max(500)).max(500).optional(),
     synonyms: z.array(z.string().max(500)).max(500).optional(),
     questions: z.array(z.string().max(500)).max(500).optional(),
+    // Provenance of the AI output (Phase 6): provider, model, prompt_version, date.
+    ai: z.object({}).passthrough().optional(),
   })
   .passthrough();
 
 // Written first, in this order, so the files read the same every time.
 const KEY_ORDER = [
   'id', 'slug', 'title', 'published', 'categories', 'summary', 'summary_edited',
-  'keywords', 'key_phrases', 'synonyms', 'questions',
+  'keywords', 'key_phrases', 'synonyms', 'questions', 'ai',
 ];
 
 export const bodyHash = (body) => crypto.createHash('sha256').update(body, 'utf8').digest('hex');

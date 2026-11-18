@@ -7,7 +7,7 @@ A Markdown wiki for a Raspberry Pi: math rendering, keyword search, and AI-assis
 - `db/README.md`: the SQL workflow.
 - `samples/README.md`: the test fixtures.
 
-## Quick start (through Phase 5)
+## Quick start (through Phase 6)
 
 ```bash
 cp .env.example .env     # fill in DB_PASSWORD and SESSION_SECRET (openssl rand -hex 32)
@@ -16,7 +16,7 @@ mkdir -p /srv/MDpedia-data/docs /srv/MDpedia-data/staging   # your DOCS_DIR and 
 make env-check
 make install
 make migrate-status
-make migrate      # applies 000 to 005 (takes a dump first)
+make migrate      # applies 000 to 006 (takes a dump first)
 make admin        # creates the admin; also resets the password
 make start
 ```
@@ -53,6 +53,18 @@ Then open `http://<pi-address>:3000/admin` and log in.
   Each published doc lists "What links here". `/admin/links` and the dashboard report unresolved links,
   and a doc's admin page shows its own links. The admin lists show each slug with a Copy button, and a
   `slug:` in the front matter of an upload is used when it is free.
+- AI extraction: with `AI_BASE_URL`, `AI_API_KEY` and `AI_MODEL` set (any OpenAI-compatible Chat Completions
+  endpoint), an upload is queued and moves Uploaded, Processing, Ready for review. The worker runs in the
+  web process and fills the doc's keywords, key phrases, synonyms, questions and summary (a hand-edited
+  summary is kept), stores suggested categories and proposals for new ones (neither is applied), and writes
+  an `ai:` block (provider, model, prompt version, date) to the front matter. Limits: `AI_CALL_TIMEOUT_SECONDS`,
+  `AI_MAX_ATTEMPTS` (transient errors only, with backoff), `AI_DAILY_CAP` (every call counts), `AI_CONCURRENCY`,
+  `AI_CIRCUIT_BREAKER_FAILURES` (the queue then pauses until you press Resume) and `AI_MAX_TOKENS`.
+  Jobs left running by a crash are re-queued at startup; finished jobs are deleted after `JOB_RETENTION_DAYS`.
+  With the AI not configured, uploads skip the queue and are "Ready for review" at once.
+- AI pages: `/admin/ai` (AI Lab: test the connection, run the model over a doc or a file and see the
+  validated output; nothing is saved) and `/admin/jobs` (queue, retry, dismiss, resume). The dashboard shows
+  calls used today and a banner when the queue is paused.
 - `/admin/status` is the Phase 0 status page (it was `/` before Phase 2). `/healthz` is unchanged.
 - Each document is stored as `<slug>.md` in `DOCS_DIR`, with `id`, `slug`, `title`,
   `published`, `categories` (ids) and, when set, `keywords`, `key_phrases`, `synonyms` and `questions` in its front matter. The file is canonical; the database is an index.

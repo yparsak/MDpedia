@@ -78,6 +78,7 @@ const schema = z.object({
   AI_API_KEY: z.string().optional(),
   AI_MODEL: z.string().optional(),
   AI_CALL_TIMEOUT_SECONDS: int('60', 1, 600),
+  AI_MAX_TOKENS: int('2000', 100, 32000),
   AI_MAX_ATTEMPTS: int('3', 1, 10),
   AI_DAILY_CAP: int('200', 0, 100000),
   AI_CONCURRENCY: int('1', 1, 8),
@@ -164,6 +165,7 @@ export function loadConfig(env = process.env) {
         apiKey: v.AI_API_KEY,
         model: v.AI_MODEL,
         timeoutSeconds: v.AI_CALL_TIMEOUT_SECONDS,
+        maxTokens: v.AI_MAX_TOKENS,
         maxAttempts: v.AI_MAX_ATTEMPTS,
         dailyCap: v.AI_DAILY_CAP,
         concurrency: v.AI_CONCURRENCY,
@@ -200,6 +202,10 @@ export function loadConfig(env = process.env) {
     },
   };
 }
+
+// True when the AI can be called: URL, key and model are all set. Uploads are
+// queued for extraction only then; otherwise they are ready for review at once.
+export const aiConfigured = (config) => Boolean(config.ai.baseUrl && config.ai.apiKey && config.ai.model);
 
 // The startup summary. Written out field by field so a secret can never slip in
 // by iterating the whole object.

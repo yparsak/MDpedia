@@ -1,0 +1,93 @@
+<%- include('../partials/header') %>
+
+<h1>AI jobs</h1>
+
+<% if (notice) { %>
+  <p class="notice notice-<%= notice.kind === 'ok' ? 'ok' : 'warn' %>"><%= notice.text %></p>
+<% } %>
+
+<%- include('../partials/ai-paused', { ai: ai }) %>
+
+<% if (!ai.configured) { %>
+  <p class="notice notice-warn">The AI is not configured, so no jobs are queued and none run. See <a href="/admin/ai">AI Lab</a>.</p>
+<% } %>
+<% if (ai.waitingForCap) { %>
+  <p class="notice notice-warn">
+    The daily cap is reached (<%= ai.usage.used %> of <%= ai.usage.cap %> calls today).
+    <%= ai.jobs.queued %> queued job<%= ai.jobs.queued === 1 ? '' : 's' %> wait until the count resets tomorrow.
+  </p>
+<% } %>
+
+<div class="stats">
+  <div class="stat"><strong><%= ai.jobs.queued %></strong>queued</div>
+  <div class="stat"><strong><%= ai.jobs.running %></strong>running</div>
+  <div class="stat"><strong><%= ai.jobs.done %></strong>done</div>
+  <div class="stat"><strong><%= ai.jobs.failed %></strong>failed</div>
+  <div class="stat"><strong><%= ai.usage.used %> / <%= ai.usage.cap %></strong>calls today</div>
+</div>
+
+<% if (ai.jobs.failed > 0) { %>
+  <form class="inline-form" method="post" action="/admin/jobs/retry-all">
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <button type="submit" class="button">Retry all failed jobs</button>
+  </form>
+<% } %>
+
+<nav class="filters" aria-label="Filter by status">
+  <% filters.forEach(function (f) { %>
+    <% if (f.active) { %>
+      <strong><%= f.label %></strong>
+    <% } else { %>
+      <a href="/admin/jobs?status=<%= f.key %>"><%= f.label %></a>
+    <% } %>
+  <% }) %>
+</nav>
+
+<p class="muted">
+  <%= total %> job<%= total === 1 ? '' : 's' %>, newest first. Finished jobs are deleted after
+  <%= retentionDays %> days; failed jobs stay until dismissed.
+</p>
+
+<% if (rows.length === 0) { %>
+  <p>No jobs here.</p>
+<% } else { %>
+  <table class="log">
+    <thead><tr><th>Job</th><th>Document</th><th>Status</th><th>Attempts</th><th>Detail</th><th></th></tr></thead>
+    <tbody>
+      <% rows.forEach(function (j) { %>
+        <tr>
+          <td><%= j.id %> <span class="muted"><%= j.type %></span></td>
+          <td><a href="/admin/docs/<%= j.docId %>"><%= j.docTitle %></a></td>
+          <td><span class="badge badge-<%= j.status %>"><%= j.status %></span></td>
+          <td><%= j.attempts %></td>
+          <td>
+            <% if (j.lastError) { %><span class="<%= j.status === 'failed' ? 'error-text' : 'muted' %>"><%= j.lastError %></span><br><% } %>
+            <span class="muted">
+              <% if (j.finishedAt) { %>Finished <%= j.finishedAt %>
+              <% } else if (j.status === 'queued') { %>Runs after <%= j.runAfter %>
+              <% } else { %>Created <%= j.createdAt %><% } %>
+            </span>
+          </td>
+          <td>
+            <% if (j.status === 'failed') { %>
+              <form class="inline-form" method="post" action="/admin/jobs/<%= j.id %>/retry">
+                <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                <button type="submit" class="link-button">Retry</button>
+              </form>
+            <% } %>
+            <% if (j.status === 'failed' || j.status === 'done') { %>
+              <form class="inline-form" method="post" action="/admin/jobs/<%= j.id %>/dismiss">
+                <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                <button type="submit" class="link-button">Dismiss</button>
+              </form>
+            <% } %>
+          </td>
+        </tr>
+      <% }) %>
+    </tbody>
+  </table>
+<% } %>
+
+<%- include('../partials/pager', { basePath: '/admin/jobs?status=' + filterKey + '&', page: page, pages: pages }) %>
+
+<%- include('../partials/footer') %>

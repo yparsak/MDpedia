@@ -139,6 +139,10 @@ code { background: #f2f4f5; padding: 0.1em 0.35em; border-radius: 3px; }
 .badge-published { background: #e8f5ec; border-color: #7bb88c; }
 .badge-unpublished { background: #f2f4f5; }
 .badge-warn { background: var(--warn-bg); border-color: var(--warn-line); }
+.badge-uploaded, .badge-queued { background: #f2f4f5; }
+.badge-processing, .badge-running { background: #e6f0fa; border-color: #8fb4dc; }
+.badge-failed { background: var(--error-bg); border-color: var(--error-line); }
+.badge-done { background: #e8f5ec; border-color: #7bb88c; }
 .guidance { color: var(--muted); padding-left: 1.2rem; }
 .field-note { color: var(--muted); font-size: 0.875rem; margin: 0; }
 .form-wide { max-width: 40rem; }
@@ -206,3 +210,8 @@ code { background: #f2f4f5; padding: 0.1em 0.35em; border-radius: 3px; }
 .stat strong { display: block; font-size: 1.4rem; }
 .eval-pass { color: #1d6b34; }
 .eval-fail { color: #a03030; }
+
+/* Phase 6: AI Lab and jobs */
+.ai-output { background: #f6f8fa; border: 1px solid var(--line); border-radius: 6px; padding: 0.75rem 1rem; overflow-x: auto; white-space: pre-wrap; overflow-wrap: anywhere; }
+.inline-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center; margin: 0.5rem 0; }
+.error-text { color: #a03030; }

@@ -40,6 +40,15 @@ and `02-math.md`; replace its queries with your own 30 to 50 as your content gro
 | `12-links-c.md` | A forward reference to a doc that does not exist yet, plus a permanently broken link. |
 | `13-links-d.md` | Not in the original roadmap list. The target of C's forward reference, so the "starts working when its target is published" test has a concrete file. Upload it only after confirming C's link renders as broken. |
 
+## Phase 6: AI extraction
+
+No new files. The existing ones cover the checklist:
+
+- `01-plain.md` is the normal document for the AI Lab and the upload test.
+- `02-math.md` is the math-heavy one: LaTeX must not turn up as keywords.
+- `03-hostile.md` carries the prompt-injection paragraph. The output must still pass the schema and nothing in it may render as HTML.
+- For "a hand-edited summary survives", upload a file whose front matter has a `summary:` line (an upload with one counts as hand-edited).
+
 ## Phase 7: Review and bulk import
 
 `20-bulk/` holds the 12 documents the roadmap calls for:

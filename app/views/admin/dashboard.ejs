@@ -6,10 +6,14 @@
   <p class="notice notice-<%= notice.kind === 'ok' ? 'ok' : 'warn' %>"><%= notice.text %></p>
 <% } %>
 
+<%- include('../partials/ai-paused', { ai: ai }) %>
+
 <div class="cards">
   <section class="card">
     <h2>Documents</h2>
     <p><strong><%= docCounts.ready %></strong> ready for review</p>
+    <% if (docCounts.uploaded + docCounts.processing > 0) { %><p><strong><%= docCounts.uploaded + docCounts.processing %></strong> waiting for the AI</p><% } %>
+    <% if (docCounts.failed > 0) { %><p><strong><%= docCounts.failed %></strong> failed, <a href="/admin/jobs?status=failed">see the jobs</a></p><% } %>
     <p><strong><%= docCounts.published %></strong> published, <strong><%= docCounts.unpublished %></strong> unpublished</p>
     <p><a href="/admin/docs">Manage documents</a> or <a href="/admin/docs/new">upload one</a></p>
   </section>
@@ -26,7 +30,14 @@
   </section>
   <section class="card">
     <h2>AI usage</h2>
-    <p class="muted">Not available yet. The AI Lab arrives in Phase 6.</p>
+    <% if (!ai.configured) { %>
+      <p class="muted">Not configured. Set <code>AI_*</code> in <code>.env</code>.</p>
+    <% } else { %>
+      <p><strong><%= ai.usage.used %></strong> of <strong><%= ai.usage.cap %></strong> calls used today</p>
+      <p><%= ai.jobs.queued %> queued, <%= ai.jobs.running %> running, <%= ai.jobs.failed %> failed</p>
+      <% if (ai.waitingForCap) { %><p class="error-text">Cap reached: queued jobs wait until tomorrow.</p><% } %>
+    <% } %>
+    <p><a href="/admin/jobs">Jobs</a> or <a href="/admin/ai">AI Lab</a></p>
   </section>
   <section class="card">
     <h2>Last backup</h2>

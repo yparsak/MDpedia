@@ -44,7 +44,9 @@
 <% } %>
 
 <h2>Visibility</h2>
-<% if (doc.published) { %>
+<% if (doc.inProgress) { %>
+  <p class="muted">Publishing is available once the AI has finished and the document is ready for review.</p>
+<% } else if (doc.published) { %>
   <form class="inline-form" method="post" action="/admin/docs/<%= doc.id %>/unpublish">
     <input type="hidden" name="_csrf" value="<%= csrfToken %>">
     <button type="submit" class="button">Unpublish</button>
@@ -54,6 +56,31 @@
     <input type="hidden" name="_csrf" value="<%= csrfToken %>">
     <button type="submit" class="button"><%= doc.status === 'unpublished' ? 'Publish again' : 'Publish' %></button>
   </form>
+<% } %>
+
+<% if (doc.ai || suggestions.categories.length > 0 || suggestions.proposals.length > 0) { %>
+  <h2>AI extraction</h2>
+  <% if (doc.ai) { %>
+    <p class="muted">
+      Provider <code><%= doc.ai.provider %></code>, model <code><%= doc.ai.model %></code>,
+      prompt <code><%= doc.ai.promptVersion %></code>, <%= doc.ai.at %>.
+      Its keywords and summary are below; the categories are only suggestions and are not applied.
+    </p>
+  <% } %>
+  <% if (suggestions.categories.length > 0) { %>
+    <p>Suggested categories, best fit first:</p>
+    <ol>
+      <% suggestions.categories.forEach(function (label) { %><li><%= label %></li><% }) %>
+    </ol>
+  <% } %>
+  <% if (suggestions.proposals.length > 0) { %>
+    <p>Proposed new categories (not created):</p>
+    <ul>
+      <% suggestions.proposals.forEach(function (p) { %>
+        <li><%= p.name %><% if (p.parentLabel) { %> <span class="muted">under <%= p.parentLabel %></span><% } else { %> <span class="muted">top level</span><% } %></li>
+      <% }) %>
+    </ul>
+  <% } %>
 <% } %>
 
 <h2>Categories</h2>

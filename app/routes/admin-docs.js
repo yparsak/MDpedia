@@ -1,6 +1,6 @@
 import { Router } from 'express';
-import multer from 'multer';
 import { verifyCsrf } from '../middleware/admin-session.js';
+import { receiveUpload as receiveUploadFor } from '../middleware/receive-upload.js';
 import { recordAudit } from '../services/audit.js';
 import { MAX_DOC_CATEGORIES, checkCategoryIds, getDocCategoryIds, setDocCategories } from '../services/doc-categories.js';
 import { docPath, loadTree, pathLabel } from '../services/categories.js';
@@ -17,6 +17,7 @@ import { noticeFrom } from '../services/notices.js';
 import { TERM_LISTS, formatTermForm, getDocTerms, parseTermForm, setDocTerms } from '../services/search-terms.js';
 import { pageCount, parsePage } from '../services/pagination.js';
 import { getDocLinks } from '../services/wiki-links.js';
+import { getSuggestions } from '../services/ai-suggestions.js';
 import { SLUG_MAX } from '../public/js/slug.js';
 import { SUMMARY_MAX, TITLE_MAX, cleanLine, ingestUpload } from '../services/upload.js';
 
@@ -24,6 +25,8 @@ const DOC_PAGE_SIZE = 25;
 
 const NOTICES = {
   uploaded: { kind: 'ok', text: 'Uploaded. The document is ready for review. Publish it when you are happy with it.' },
+  queued: { kind: 'ok', text: 'Uploaded. The AI is extracting keywords, a summary and category suggestions. The status becomes "Ready for review" when it finishes; the Jobs page shows progress.' },
+  busy: { kind: 'warn', text: 'The AI is still working on this document. Publish it once it is ready for review.' },
   published: { kind: 'ok', text: 'Published. Readers can see this document now.' },
   unpublished: { kind: 'ok', text: 'Unpublished. Readers get "page not found" for it until you publish it again.' },
   'title-saved': { kind: 'ok', text: 'Title saved. The slug did not change.' },
@@ -37,29 +40,23 @@ const NOTICES = {
 // The filter links on the list page; the keys are the only values honoured.
 const FILTERS = [
   { key: 'all', label: 'All', status: null },
+  { key: 'uploaded', label: STATUS_LABELS.uploaded, status: 'uploaded' },
+  { key: 'processing', label: STATUS_LABELS.processing, status: 'processing' },
   { key: 'ready', label: STATUS_LABELS.ready, status: 'ready' },
+  { key: 'failed', label: STATUS_LABELS.failed, status: 'failed' },
   { key: 'published', label: STATUS_LABELS.published, status: 'published' },
   { key: 'unpublished', label: STATUS_LABELS.unpublished, status: 'unpublished' },
 ];
+
+// Docs the AI queue still owns.
+const IN_PROGRESS = ['uploaded', 'processing'];
 
 const parseId = (value) => (/^\d{1,10}$/.test(String(value)) ? Number(value) : null);
 
 export function adminDocsRouter({ pool, config, needAdmin }) {
   const router = Router();
 
-  // Multipart parsing happens here, after the admin check and before the CSRF
-  // check, because the token is a form field. The file stays in memory (the
-  // cap is small) and is written only through the staging directory.
-  const upload = multer({
-    storage: multer.memoryStorage(),
-    limits: { fileSize: config.uploads.maxBytes, files: 1, fields: 5, fieldSize: 10 * 1024, parts: 10 },
-    defParamCharset: 'utf8',
-  }).single('file');
-  const receiveUpload = (req, res, next) =>
-    upload(req, res, (err) => {
-      req.uploadError = err ?? null;
-      next();
-    });
+  const receiveUpload = receiveUploadFor({ maxBytes: config.uploads.maxBytes });
 
   const notFound = (res) => res.status(404).render('404', { title: 'Page not found' });
 
@@ -108,6 +105,7 @@ export function adminDocsRouter({ pool, config, needAdmin }) {
       termsValue: termsValue ?? formatTermForm(await getDocTerms(pool, doc.id)),
       termLists: TERM_LISTS.map(({ list, label, max, length }) => ({ list, label, max, length })),
       links: await getDocLinks(pool, doc.id),
+      suggestions: await getSuggestions(pool, doc.id, tree),
       titleMax: TITLE_MAX,
       summaryMax: SUMMARY_MAX,
       styles: ['/vendor/katex/katex.min.css', '/css/doc.css'],
@@ -166,7 +164,7 @@ export function adminDocsRouter({ pool, config, needAdmin }) {
       summary: `Uploaded "${result.slug}". Ready for review.`,
       ip: req.ip,
     });
-    res.redirect(303, `/admin/docs/${result.id}?msg=uploaded`);
+    res.redirect(303, `/admin/docs/${result.id}?msg=${result.queued ? 'queued' : 'uploaded'}`);
   });
 
   // ------------------------------------------------------------------ detail
@@ -204,6 +202,8 @@ export function adminDocsRouter({ pool, config, needAdmin }) {
 
   router.post('/:id/publish', needAdmin, verifyCsrf, loadDoc, (req, res) => {
     if (req.doc.published) return unchanged(req, res);
+    // Not while the AI is still working on it: it would be published half-finished.
+    if (IN_PROGRESS.includes(req.doc.status)) return res.redirect(303, `/admin/docs/${req.doc.id}?msg=busy`);
     return applyChange(req, res, {
       action: 'doc.publish',
       summary: `Published "${req.doc.slug}".`,
@@ -339,6 +339,8 @@ function docView(d) {
     createdAt: d.created_at,
     updatedAt: d.updated_at,
     publishedAt: d.published_at ?? '',
+    inProgress: IN_PROGRESS.includes(d.status),
+    ai: d.ai_at ? { provider: d.ai_provider, model: d.ai_model, promptVersion: d.ai_prompt_version, at: d.ai_at } : null,
     html: d.html ?? '',
   };
 }

@@ -1,0 +1,12 @@
+<% if (ai.circuit.paused) { %>
+  <div class="notice notice-error" role="alert">
+    <strong>The AI queue is paused.</strong>
+    It stopped after <%= ai.circuit.failures %> failures in a row (since <%= ai.circuit.pausedAt %>, server time).
+    Last error: <%= ai.circuit.reason %>
+    Fix the cause, then resume. Failed jobs are not retried automatically.
+    <form class="inline-form" method="post" action="/admin/jobs/resume">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <button type="submit" class="button">Resume the queue</button>
+    </form>
+  </div>
+<% } %>
