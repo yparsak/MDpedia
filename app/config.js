@@ -85,6 +85,7 @@ const schema = z.object({
   AI_CIRCUIT_BREAKER_FAILURES: int('5', 1, 100),
 
   MAX_UPLOAD_BYTES: int('262144', 1, 104857600),
+  BULK_MAX_FILES: int('100', 1, 1000),
 
   JOB_POLL_INTERVAL_SECONDS: int('5', 1, 3600),
   RECONCILE_INTERVAL_MINUTES: int('15', 1, 1440),
@@ -171,7 +172,7 @@ export function loadConfig(env = process.env) {
         concurrency: v.AI_CONCURRENCY,
         circuitBreakerFailures: v.AI_CIRCUIT_BREAKER_FAILURES,
       },
-      uploads: { maxBytes: v.MAX_UPLOAD_BYTES },
+      uploads: { maxBytes: v.MAX_UPLOAD_BYTES, bulkMaxFiles: v.BULK_MAX_FILES },
       worker: {
         pollIntervalSeconds: v.JOB_POLL_INTERVAL_SECONDS,
         reconcileIntervalMinutes: v.RECONCILE_INTERVAL_MINUTES,

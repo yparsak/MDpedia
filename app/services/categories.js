@@ -7,7 +7,7 @@
 // instead of with a recursive query per request.
 
 import { SLUG_MAX, SLUG_PATTERN, slugify } from '../public/js/slug.js';
-import { cleanLine } from './upload.js';
+import { cleanLine } from './text.js';
 
 export const MAX_DEPTH = 3;
 export const NAME_MAX = 100;

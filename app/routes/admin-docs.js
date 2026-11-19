@@ -28,6 +28,7 @@ const NOTICES = {
   queued: { kind: 'ok', text: 'Uploaded. The AI is extracting keywords, a summary and category suggestions. The status becomes "Ready for review" when it finishes; the Jobs page shows progress.' },
   busy: { kind: 'warn', text: 'The AI is still working on this document. Publish it once it is ready for review.' },
   published: { kind: 'ok', text: 'Published. Readers can see this document now.' },
+  approved: { kind: 'ok', text: 'Approved and published. Readers can see this document now, under its primary category.' },
   unpublished: { kind: 'ok', text: 'Unpublished. Readers get "page not found" for it until you publish it again.' },
   'title-saved': { kind: 'ok', text: 'Title saved. The slug did not change.' },
   'summary-saved': { kind: 'ok', text: 'Summary saved and marked as hand-edited.' },

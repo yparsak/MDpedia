@@ -24,7 +24,7 @@ export const STATUS_LABELS = {
 };
 
 const LIST_COLUMNS =
-  'id, slug, title, status, published, summary, summary_edited, has_raw_html, created_at, updated_at, published_at';
+  'id, slug, title, status, published, summary, summary_edited, has_raw_html, size_bytes, created_at, updated_at, published_at';
 
 // ------------------------------------------------------------------ reading
 
@@ -63,6 +63,18 @@ export async function listDocs(pool, { status = null, limit, offset }) {
   return { total: Number(total), rows };
 }
 
+// The docs awaiting review ("ready"), oldest first. ids: only these, or null for all of them.
+// For bulk approval, which has to look at the whole queue, not a page of it.
+export async function getReadyDocs(pool, ids = null) {
+  if (ids !== null && ids.length === 0) return [];
+  const where = ids === null ? '' : 'AND id IN (?)';
+  const [rows] = await pool.query(
+    `SELECT ${LIST_COLUMNS} FROM docs WHERE status = 'ready' ${where} ORDER BY id`,
+    ids === null ? [] : [ids],
+  );
+  return rows;
+}
+
 // Reader home page: published docs, alphabetical.
 export async function listPublished(pool, { limit, offset }) {
   const [[{ total }]] = await pool.query('SELECT COUNT(*) AS total FROM docs WHERE published = 1');
@@ -91,20 +103,36 @@ export async function countByStatus(pool) {
 // (slug taken in the table) or EEXIST (a file with that name is already in the
 // docs directory); the caller turns both into "slug taken". Resolves to the new id.
 // queue: true starts the doc as "uploaded" with an AI job, in the same transaction.
-export async function createDoc(pool, config, { slug, title, summary, extraFrontMatter, terms = emptyTerms(), body, rendered, queue = false }) {
+// categoryIds (already matched against the tree) are filed at once and written to the
+// front matter; proposals ({ name, parentId, sourceValue }) wait in category_proposals.
+export async function createDoc(
+  pool,
+  config,
+  { slug, title, summary, extraFrontMatter, terms = emptyTerms(), body, rendered, queue = false, categoryIds = [], proposals = [], sizeBytes = null },
+) {
   const hash = bodyHash(body);
   const conn = await pool.getConnection();
   let fileWritten = false;
   try {
     await conn.beginTransaction();
     const [result] = await conn.query(
-      `INSERT INTO docs (slug, title, status, published, summary, summary_edited, has_raw_html, body_hash, html, plain_text)
-       VALUES (?, ?, ?, 0, ?, ?, ?, ?, ?, ?)`,
-      [slug, title, queue ? 'uploaded' : 'ready', summary, summary ? 1 : 0, rendered.hasRawHtml ? 1 : 0, hash, rendered.html, rendered.plainText],
+      `INSERT INTO docs (slug, title, status, published, summary, summary_edited, has_raw_html, body_hash, html, plain_text, size_bytes)
+       VALUES (?, ?, ?, 0, ?, ?, ?, ?, ?, ?, ?)`,
+      [slug, title, queue ? 'uploaded' : 'ready', summary, summary ? 1 : 0, rendered.hasRawHtml ? 1 : 0, hash, rendered.html, rendered.plainText, sizeBytes],
     );
     const id = result.insertId;
     await insertTerms(conn, id, terms);
     await insertLinks(conn, id, rendered.linkTargets);
+    if (categoryIds.length > 0) {
+      await conn.query('INSERT INTO doc_categories (doc_id, category_id, position) VALUES ?', [
+        categoryIds.map((categoryId, index) => [id, categoryId, index + 1]),
+      ]);
+    }
+    if (proposals.length > 0) {
+      await conn.query("INSERT INTO category_proposals (doc_id, parent_id, name, source, source_value) VALUES ?", [
+        proposals.map((p) => [id, p.parentId, p.name, 'file', p.sourceValue]),
+      ]);
+    }
     if (queue) await enqueueJob(conn, id);
     const text = serializeFrontMatter(
       {
@@ -113,6 +141,7 @@ export async function createDoc(pool, config, { slug, title, summary, extraFront
         slug,
         title,
         published: false,
+        categories: categoryIds.length > 0 ? categoryIds : undefined,
         summary: summary || undefined,
         summary_edited: summary ? true : undefined,
         ...termsToFrontMatter(terms),

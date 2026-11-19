@@ -1,0 +1,104 @@
+<%- include('../partials/header') %>
+
+<h1>Review queue</h1>
+
+<% if (notice) { %>
+  <p class="notice notice-<%= notice.kind === 'ok' ? 'ok' : 'warn' %>"><%= notice.text %></p>
+<% } %>
+
+<p class="muted">
+  Nothing reaches readers until you approve it. Open a document to edit what the AI produced and approve it,
+  or approve several at once below. <a href="/admin/import">Bulk import</a> adds many files at a time.
+</p>
+
+<nav class="filters" aria-label="Filter the queue">
+  <% views.forEach(function (v) { %>
+    <% if (v.active) { %>
+      <strong><%= v.label %></strong>
+    <% } else { %>
+      <a href="/admin/review?view=<%= v.key %>"><%= v.label %></a>
+    <% } %>
+  <% }) %>
+  <a href="/admin/jobs?status=failed">Failed jobs</a>
+</nav>
+
+<p class="muted"><%= total %> document<%= total === 1 ? '' : 's' %>.</p>
+
+<% if (rows.length === 0) { %>
+  <p>No documents here.</p>
+<% } else if (viewKey === 'ready') { %>
+  <form method="post" action="/admin/review/approve">
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <table class="log">
+      <thead><tr><th></th><th>Title</th><th>Slug</th><th>Exceptions</th><th>Updated</th></tr></thead>
+      <tbody>
+        <% rows.forEach(function (d) { %>
+          <tr>
+            <td><input type="checkbox" name="ids" value="<%= d.id %>" aria-label="Select <%= d.title %>"></td>
+            <td><a href="/admin/review/<%= d.id %>"><%= d.title %></a></td>
+            <td><code><%= d.slug %></code></td>
+            <td>
+              <% if (d.exceptions.length === 0) { %>
+                <span class="muted">none</span>
+              <% } else { %>
+                <% d.exceptions.forEach(function (e) { %><span class="badge badge-warn"><%= e %></span> <% }) %>
+              <% } %>
+            </td>
+            <td><%= d.updatedAt %></td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+    <p>
+      <button type="submit" name="mode" value="selected" class="button">Approve selected</button>
+      <button type="submit" name="mode" value="all" class="button">Approve all ready</button>
+    </p>
+    <p class="field-note">
+      You see what will be approved, and the documents held back for review, before anything changes.
+      A document with an exception (an undecided category proposal, an unresolved link, raw HTML or an oversize file)
+      is never approved in bulk until you handle it on its own review screen.
+    </p>
+  </form>
+<% } else { %>
+  <table class="log">
+    <thead><tr><th>Title</th><th>Slug</th><th>Status</th><th>Updated</th></tr></thead>
+    <tbody>
+      <% rows.forEach(function (d) { %>
+        <tr>
+          <td><a href="/admin/docs/<%= d.id %>"><%= d.title %></a></td>
+          <td><code><%= d.slug %></code></td>
+          <td><span class="badge badge-unpublished"><%= d.statusLabel %></span></td>
+          <td><%= d.updatedAt %></td>
+        </tr>
+      <% }) %>
+    </tbody>
+  </table>
+<% } %>
+
+<%- include('../partials/pager', { basePath: '/admin/review?view=' + viewKey + '&', page: page, pages: pages }) %>
+
+<h2>Pending category proposals</h2>
+<% if (proposalTotal === 0) { %>
+  <p class="muted">No proposals waiting.</p>
+<% } else { %>
+  <p class="muted">
+    <%= proposalTotal %> proposal<%= proposalTotal === 1 ? '' : 's' %>. Accept, rename or reject each on its document's review screen.
+    Nothing is created until you accept it.
+    <% if (proposalTotal > proposalLimit) { %>The first <%= proposalLimit %> are shown.<% } %>
+  </p>
+  <table class="log">
+    <thead><tr><th>Proposed category</th><th>Under</th><th>From</th><th>Document</th></tr></thead>
+    <tbody>
+      <% proposals.forEach(function (p) { %>
+        <tr>
+          <td><%= p.name %></td>
+          <td><%= p.parentLabel || 'top level' %></td>
+          <td><%= p.origin %></td>
+          <td><a href="/admin/review/<%= p.docId %>"><%= p.docTitle %></a></td>
+        </tr>
+      <% }) %>
+    </tbody>
+  </table>
+<% } %>
+
+<%- include('../partials/footer') %>

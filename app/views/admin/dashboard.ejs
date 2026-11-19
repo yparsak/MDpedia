@@ -10,6 +10,13 @@
 
 <div class="cards">
   <section class="card">
+    <h2>Review queue</h2>
+    <p><strong><%= docCounts.ready %></strong> awaiting review</p>
+    <p><strong><%= pendingProposals %></strong> pending category proposal<%= pendingProposals === 1 ? '' : 's' %></p>
+    <p><strong><%= ai.jobs.failed %></strong> failed job<%= ai.jobs.failed === 1 ? '' : 's' %>, <strong><%= docCounts.unpublished %></strong> unpublished</p>
+    <p><a href="/admin/review">Review queue</a>, <a href="/admin/review?view=unpublished">unpublished</a>, <a href="/admin/import">bulk import</a></p>
+  </section>
+  <section class="card">
     <h2>Documents</h2>
     <p><strong><%= docCounts.ready %></strong> ready for review</p>
     <% if (docCounts.uploaded + docCounts.processing > 0) { %><p><strong><%= docCounts.uploaded + docCounts.processing %></strong> waiting for the AI</p><% } %>
@@ -33,7 +40,7 @@
     <% if (!ai.configured) { %>
       <p class="muted">Not configured. Set <code>AI_*</code> in <code>.env</code>.</p>
     <% } else { %>
-      <p><strong><%= ai.usage.used %></strong> of <strong><%= ai.usage.cap %></strong> calls used today</p>
+      <p><strong><%= ai.usage.used %></strong> of <strong><%= ai.usage.cap %></strong> calls used today<% if (ai.usage.extra > 0) { %>, plus <strong><%= ai.usage.extra %></strong> allowed above the cap<% } %></p>
       <p><%= ai.jobs.queued %> queued, <%= ai.jobs.running %> running, <%= ai.jobs.failed %> failed</p>
       <% if (ai.waitingForCap) { %><p class="error-text">Cap reached: queued jobs wait until tomorrow.</p><% } %>
     <% } %>

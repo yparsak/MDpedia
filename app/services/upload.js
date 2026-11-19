@@ -2,10 +2,11 @@
 // anything is written, and each failure names its real reason so the admin can
 // fix it: wrong extension, size, null byte, encoding, front matter, title, slug.
 //
-// A new upload always starts unpublished. An `id`, `published`, `categories` or
-// `ai` in the uploaded front matter is ignored: the database assigns the id, nothing
-// in an upload may publish itself, and category ids from another wiki would
-// point at the wrong categories here. Categories are assigned on the doc page.
+// A new upload always starts unpublished. An `id`, `published` or `ai` in the
+// uploaded front matter is ignored: the database assigns the id and nothing in an
+// upload may publish itself. `categories:` is honoured when a value names a
+// category in the tree by its path; an unmatched value becomes a proposal and is
+// never created (file-categories.js). The admin confirms categories on the review screen.
 // Search keywords, key phrases, synonyms and questions are kept (cleaned and
 // capped), since they are plain text that harms nothing; AI extraction replaces them.
 
@@ -14,7 +15,9 @@ import { SLUG_MAX, SLUG_PATTERN, slugify } from '../public/js/slug.js';
 import { parseFrontMatter } from './frontmatter.js';
 import { cleanLine } from './text.js';
 import { aiConfigured } from '../config.js';
+import { loadTree, pathLabel } from './categories.js';
 import { createDoc, slugTaken } from './docs.js';
+import { resolveFileCategories } from './file-categories.js';
 import { termsFromFrontMatter } from './search-terms.js';
 import { firstHeading } from './markdown.js';
 import { renderWithLinks } from './wiki-links.js';
@@ -82,8 +85,23 @@ export function resolveSlug({ formSlug, frontMatterSlug, title }) {
 
 const slugTakenResult = (slug) => fail(409, `The slug "${slug}" is already taken. Slugs are permanent and unique, so choose another.`);
 
-// Resolves to { ok: true, id, slug, queued } or { ok: false, status, errors }.
-export async function ingestUpload(pool, config, { file, formTitle, formSlug }) {
+// The first free "base-2", "base-3", ... (bulk import, brainstorm 5.16). The base is
+// shortened if the suffix would push the slug over SLUG_MAX. `tried` holds slugs
+// that looked free but were refused when written.
+async function freeSlug(pool, base, tried) {
+  for (let n = 2; n < 1000; n += 1) {
+    const suffix = `-${n}`;
+    const candidate = `${base.slice(0, SLUG_MAX - suffix.length).replace(/-+$/, '')}${suffix}`;
+    if (!tried.has(candidate) && !(await slugTaken(pool, candidate))) return candidate;
+  }
+  return null;
+}
+
+// Resolves to { ok: true, id, slug, baseSlug, queued, categoryLabels, proposed } or
+// { ok: false, status, errors }. suffixCollisions: a taken slug gets a numeric
+// suffix instead of being refused (bulk import). baseSlug is the slug before any suffix;
+// proposed lists the `categories:` values that matched nothing.
+export async function ingestUpload(pool, config, { file, formTitle, formSlug, suffixCollisions = false }) {
   const checked = validateUploadFile({
     buffer: file?.buffer,
     originalName: file?.originalname,
@@ -106,23 +124,56 @@ export async function ingestUpload(pool, config, { file, formTitle, formSlug }) 
 
   const resolved = resolveSlug({ formSlug, frontMatterSlug: data.slug, title });
   if (resolved.error) return fail(400, resolved.error);
-  const { slug } = resolved;
-  if (!SLUG_PATTERN.test(slug)) return fail(400, 'The slug may only use lowercase letters, digits and hyphens.');
-  if (await slugTaken(pool, slug)) return slugTakenResult(slug);
+  const baseSlug = resolved.slug;
+  if (!SLUG_PATTERN.test(baseSlug)) return fail(400, 'The slug may only use lowercase letters, digits and hyphens.');
+  let slug = baseSlug;
+  const tried = new Set();
+  if (await slugTaken(pool, slug)) {
+    if (!suffixCollisions) return slugTakenResult(slug);
+    slug = await freeSlug(pool, baseSlug, tried);
+    if (slug === null) return slugTakenResult(baseSlug);
+  }
 
   const summary = cleanLine(data.summary).slice(0, SUMMARY_MAX) || null;
   const extraFrontMatter = Object.fromEntries(Object.entries(data).filter(([key]) => !KNOWN_KEYS.includes(key)));
   const rendered = await renderWithLinks(pool, body, title);
   const terms = termsFromFrontMatter(data);
+  const tree = await loadTree(pool);
+  const fileCategories = resolveFileCategories(tree, data.categories);
 
   // With the AI configured the doc waits for extraction; without it, it is ready for review at once.
   const queued = aiConfigured(config);
-  try {
-    const id = await createDoc(pool, config, { slug, title, summary, extraFrontMatter, terms, body, rendered, queue: queued });
-    return { ok: true, id, slug, queued };
-  } catch (err) {
-    // Lost a race for the slug, or a stray file already holds the name.
-    if (err.code === 'ER_DUP_ENTRY' || err.code === 'EEXIST') return slugTakenResult(slug);
-    throw err;
+  for (let attempt = 0; ; attempt += 1) {
+    try {
+      const id = await createDoc(pool, config, {
+        slug,
+        title,
+        summary,
+        extraFrontMatter,
+        terms,
+        body,
+        rendered,
+        queue: queued,
+        categoryIds: fileCategories.ids,
+        proposals: fileCategories.proposals,
+        sizeBytes: file.buffer.length,
+      });
+      return {
+        ok: true,
+        id,
+        slug,
+        baseSlug,
+        queued,
+        categoryLabels: fileCategories.ids.map((categoryId) => pathLabel(tree.byId.get(categoryId))),
+        proposed: fileCategories.proposals.map((p) => p.sourceValue),
+      };
+    } catch (err) {
+      // Lost a race for the slug, or a stray file already holds the name.
+      if (err.code !== 'ER_DUP_ENTRY' && err.code !== 'EEXIST') throw err;
+      if (!suffixCollisions || attempt >= 3) return slugTakenResult(slug);
+      tried.add(slug);
+      slug = await freeSlug(pool, baseSlug, tried);
+      if (slug === null) return slugTakenResult(baseSlug);
+    }
   }
 }

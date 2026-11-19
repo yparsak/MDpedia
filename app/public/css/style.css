@@ -215,3 +215,11 @@ code { background: #f2f4f5; padding: 0.1em 0.35em; border-radius: 3px; }
 .ai-output { background: #f6f8fa; border: 1px solid var(--line); border-radius: 6px; padding: 0.75rem 1rem; overflow-x: auto; white-space: pre-wrap; overflow-wrap: anywhere; }
 .inline-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center; margin: 0.5rem 0; }
 .error-text { color: #a03030; }
+
+/* Phase 7: review and bulk import */
+.form input[type="checkbox"], .form input[type="radio"] { padding: 0; margin-right: 0.4rem; }
+.form .button { margin-top: 0; }
+.form label:has(input[type="checkbox"]), .form label:has(input[type="radio"]) { font-weight: 400; }
+.proposal { border: 1px solid var(--line); border-radius: 6px; padding: 0.25rem 1rem 0.75rem; margin: 0.5rem 0; display: grid; gap: 0.35rem; }
+.proposal legend { font-weight: 600; padding: 0 0.4rem; }
+.proposal p { margin: 0.25rem 0; }

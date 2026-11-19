@@ -6,6 +6,7 @@ import { recordAudit, listAudit } from '../services/audit.js';
 import { categoryStats } from '../services/categories.js';
 import { countByStatus } from '../services/docs.js';
 import { noticeFrom } from '../services/notices.js';
+import { countPendingProposals } from '../services/review.js';
 import { pageCount, parsePage } from '../services/pagination.js';
 import { getStatus } from '../services/status.js';
 import { countUnresolved } from '../services/wiki-links.js';
@@ -14,6 +15,8 @@ import { adminAiRouter } from './admin-ai.js';
 import { adminJobsRouter } from './admin-jobs.js';
 import { adminCategoriesRouter } from './admin-categories.js';
 import { adminDocsRouter } from './admin-docs.js';
+import { adminImportRouter } from './admin-import.js';
+import { adminReviewRouter } from './admin-review.js';
 import { adminLinksRouter } from './admin-links.js';
 import { adminSearchRouter } from './admin-search.js';
 import { findByUsername, normalizeUsername, recordLogin, setPassword } from '../services/admins.js';
@@ -48,7 +51,7 @@ export function adminRouter({ pool, config, version }) {
   const passwordThrottle = createThrottle({ maxFails: config.rate.loginFailsPer15Min });
 
   router.use(noStore);
-  router.use(express.urlencoded({ extended: false, limit: '10kb' }));
+  router.use(express.urlencoded({ extended: false, limit: '64kb' }));
   router.use(loadAdminSession({ pool, config }));
 
   const needAdmin = requireAdmin({ config });
@@ -149,6 +152,7 @@ export function adminRouter({ pool, config, version }) {
       docCounts,
       categoryCounts,
       unresolvedLinks: await countUnresolved(pool),
+      pendingProposals: await countPendingProposals(pool),
       ai: await aiOverview(pool, config),
       sessionExpires: req.session.expiresAt,
       idleMinutes: config.session.idleMinutes,
@@ -199,6 +203,11 @@ export function adminRouter({ pool, config, version }) {
   // -------------------------------------------------------------- documents
 
   router.use('/docs', adminDocsRouter({ pool, config, needAdmin }));
+
+  // ---------------------------------------------------------- review, import
+
+  router.use('/review', adminReviewRouter({ pool, config, needAdmin }));
+  router.use('/import', adminImportRouter({ pool, config, needAdmin }));
 
   // ------------------------------------------------------------- categories
 

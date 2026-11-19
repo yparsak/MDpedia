@@ -1,0 +1,50 @@
+<%- include('../partials/header') %>
+
+<h1>Approve documents</h1>
+
+<% if (stage === 'confirm') { %>
+  <% if (approve.length === 0) { %>
+    <p class="notice notice-warn">No document can be approved in bulk right now.</p>
+  <% } else { %>
+    <p><strong><%= approve.length %></strong> document<%= approve.length === 1 ? '' : 's' %> will be approved and published.
+      A document with no category takes the AI's suggested categories.</p>
+    <ul>
+      <% approve.forEach(function (d) { %><li><a href="/admin/review/<%= d.id %>"><%= d.title %></a> <code><%= d.slug %></code></li><% }) %>
+    </ul>
+    <form class="inline-form" method="post" action="/admin/review/approve/confirm">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <% ids.forEach(function (id) { %><input type="hidden" name="ids" value="<%= id %>"><% }) %>
+      <button type="submit" class="button">Approve these <%= approve.length %></button>
+    </form>
+  <% } %>
+<% } else { %>
+  <p class="notice notice-ok"><strong><%= approved %></strong> document<%= approved === 1 ? '' : 's' %> approved and published.</p>
+  <% if (failed.length > 0) { %>
+    <div class="notice notice-error" role="alert">
+      <p>These could not be approved:</p>
+      <ul>
+        <% failed.forEach(function (d) { %><li><a href="/admin/docs/<%= d.id %>"><%= d.title %></a>: <%= d.reason %></li><% }) %>
+      </ul>
+    </div>
+  <% } %>
+<% } %>
+
+<% if (held.length > 0) { %>
+  <h2>Held back for review (<%= held.length %>)</h2>
+  <p class="muted">These are not approved. Open each one, handle the exception and approve it there.</p>
+  <table class="log">
+    <thead><tr><th>Title</th><th>Why</th></tr></thead>
+    <tbody>
+      <% held.forEach(function (d) { %>
+        <tr>
+          <td><a href="/admin/review/<%= d.id %>"><%= d.title %></a> <code><%= d.slug %></code></td>
+          <td><% d.reasons.forEach(function (r) { %><span class="badge badge-warn"><%= r %></span> <% }) %></td>
+        </tr>
+      <% }) %>
+    </tbody>
+  </table>
+<% } %>
+
+<p><a href="/admin/review">Back to the review queue</a></p>
+
+<%- include('../partials/footer') %>

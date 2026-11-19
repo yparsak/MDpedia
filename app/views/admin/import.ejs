@@ -1,0 +1,49 @@
+<%- include('../partials/header') %>
+
+<h1>Bulk import</h1>
+
+<% if (errors.length > 0) { %>
+  <div class="notice notice-error" role="alert">
+    <ul>
+      <% errors.forEach(function (e) { %><li><%= e %></li><% }) %>
+    </ul>
+  </div>
+<% } %>
+
+<ul class="guidance">
+  <li>Up to <%= maxFiles %> Markdown files ending in <code>.md</code>, UTF-8 text, each up to <%= maxBytes %> bytes. A file that is too big or cannot be read is skipped and listed in the report; the rest still import.</li>
+  <li>There is no per-file form. The slug comes from the file's front matter <code>slug</code>, otherwise from the title. A slug that is taken gets a suffix such as <code>-2</code>.</li>
+  <li>A <code>categories:</code> line such as <code>[math/calculus]</code> files the document under a category that exists. A value that matches nothing becomes a proposal; nothing is created.</li>
+  <li>Do not include secrets, credentials or personal data. <% if (aiOn) { %>Every document is sent to the AI provider for extraction.<% } else { %>The AI is not configured, so documents go straight to "Ready for review".<% } %></li>
+  <li>Imported documents are saved unpublished. Approve them on the <a href="/admin/review">review queue</a>.</li>
+</ul>
+
+<form class="form" method="post" action="/admin/import" enctype="multipart/form-data" autocomplete="off">
+  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+  <label for="files">Markdown files</label>
+  <input id="files" name="files" type="file" accept=".md,text/markdown" multiple required>
+  <p class="field-note">Nothing is created yet. The next page shows what the import will do and asks you to confirm.</p>
+  <button type="submit">Continue</button>
+</form>
+
+<h2>Recent imports</h2>
+<% if (batches.length === 0) { %>
+  <p class="muted">No imports yet.</p>
+<% } else { %>
+  <table class="log">
+    <thead><tr><th>Report</th><th>When</th><th>Files</th><th>Imported</th><th>Skipped</th></tr></thead>
+    <tbody>
+      <% batches.forEach(function (b) { %>
+        <tr>
+          <td><a href="/admin/import/<%= b.id %>">Import <%= b.id %></a></td>
+          <td><%= b.createdAt %></td>
+          <td><%= b.fileCount %></td>
+          <td><%= b.imported %></td>
+          <td><%= b.skipped %></td>
+        </tr>
+      <% }) %>
+    </tbody>
+  </table>
+<% } %>
+
+<%- include('../partials/footer') %>

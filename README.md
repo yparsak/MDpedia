@@ -7,7 +7,7 @@ A Markdown wiki for a Raspberry Pi: math rendering, keyword search, and AI-assis
 - `db/README.md`: the SQL workflow.
 - `samples/README.md`: the test fixtures.
 
-## Quick start (through Phase 6)
+## Quick start (through Phase 7)
 
 ```bash
 cp .env.example .env     # fill in DB_PASSWORD and SESSION_SECRET (openssl rand -hex 32)
@@ -16,7 +16,7 @@ mkdir -p /srv/MDpedia-data/docs /srv/MDpedia-data/staging   # your DOCS_DIR and 
 make env-check
 make install
 make migrate-status
-make migrate      # applies 000 to 006 (takes a dump first)
+make migrate      # applies 000 to 007 (takes a dump first)
 make admin        # creates the admin; also resets the password
 make start
 ```
@@ -65,6 +65,19 @@ Then open `http://<pi-address>:3000/admin` and log in.
 - AI pages: `/admin/ai` (AI Lab: test the connection, run the model over a doc or a file and see the
   validated output; nothing is saved) and `/admin/jobs` (queue, retry, dismiss, resume). The dashboard shows
   calls used today and a banner when the queue is paused.
+- Review and approval: nothing is visible to readers until you approve it. `/admin/review` is the queue
+  (documents awaiting review, an "Unpublished" filter, pending category proposals, failed jobs). A document's
+  review screen (`/admin/review/<id>`) edits the AI's summary, keywords, synonyms and questions, picks up to
+  three categories (the first is primary) and accepts, renames or rejects proposed new categories; approving
+  writes the categories and `published: true` to the front matter and publishes. "Approve selected" and
+  "Approve all ready" list what they will approve first and hold back documents with exceptions (undecided
+  proposals, unresolved links, raw HTML, oversize). A `categories: [math/calculus]` line in an upload files
+  the document under a category that exists (paths are slugs joined with `/`); anything unmatched becomes a
+  proposal and is never created automatically.
+- Bulk import: `/admin/import` takes many `.md` files (up to `BULK_MAX_FILES`), asks you to confirm the number
+  of AI calls (granting a one-time allowance above `AI_DAILY_CAP` if needed), then imports them with `-2`
+  style suffixes for taken slugs. A file that fails (oversize, bad encoding, bad front matter) is skipped and
+  listed in the import report, which also shows each document's slug and exceptions.
 - `/admin/status` is the Phase 0 status page (it was `/` before Phase 2). `/healthz` is unchanged.
 - Each document is stored as `<slug>.md` in `DOCS_DIR`, with `id`, `slug`, `title`,
   `published`, `categories` (ids) and, when set, `keywords`, `key_phrases`, `synonyms` and `questions` in its front matter. The file is canonical; the database is an index.

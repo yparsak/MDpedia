@@ -1,4 +1,4 @@
--- Full current schema for a fresh install (after Phase 6).
+-- Full current schema for a fresh install (after Phase 7).
 -- Regenerate with `make schema-dump` after every phase. The first dump will
 -- reformat this file into mariadb-dump's style; that is expected. Commit that
 -- version as the baseline, and later runs should then leave it unchanged.
@@ -72,6 +72,8 @@ CREATE TABLE IF NOT EXISTS docs (
   ai_model          VARCHAR(200) NULL,
   ai_prompt_version VARCHAR(20)  NULL,
   ai_at             DATETIME     NULL,
+  approved_at       DATETIME     NULL,
+  size_bytes        INT UNSIGNED NULL,
   PRIMARY KEY (id),
   UNIQUE KEY uq_docs_slug (slug),
   KEY idx_docs_status (status),
@@ -183,6 +185,8 @@ CREATE TABLE IF NOT EXISTS ai_state (
   consecutive_failures INT UNSIGNED     NOT NULL DEFAULT 0,
   paused_at            DATETIME         NULL,
   pause_reason         VARCHAR(300)     NULL,
+  -- One-time allowance above the daily cap, granted by a bulk import (Phase 7).
+  extra_calls          INT UNSIGNED     NOT NULL DEFAULT 0,
   PRIMARY KEY (id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -205,6 +209,8 @@ CREATE TABLE IF NOT EXISTS category_proposals (
   parent_id  INT UNSIGNED NULL,
   name       VARCHAR(100) NOT NULL,
   source     ENUM('ai', 'file') NOT NULL DEFAULT 'ai',
+  -- For a file's `categories:` value, as written (Phase 7).
+  source_value VARCHAR(200) NULL,
   status     ENUM('pending', 'accepted', 'rejected') NOT NULL DEFAULT 'pending',
   created_at DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (id),
@@ -214,4 +220,34 @@ CREATE TABLE IF NOT EXISTS category_proposals (
   CONSTRAINT fk_proposals_parent FOREIGN KEY (parent_id) REFERENCES categories (id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-INSERT IGNORE INTO schema_migrations (version) VALUES ('000_schema_migrations'), ('001_admin'), ('002_documents'), ('003_categories'), ('004_search'), ('005_links'), ('006_ai');
+CREATE TABLE IF NOT EXISTS import_batches (
+  id         INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  actor      VARCHAR(64)  NOT NULL,
+  file_count INT UNSIGNED NOT NULL DEFAULT 0,
+  imported   INT UNSIGNED NOT NULL DEFAULT 0,
+  skipped    INT UNSIGNED NOT NULL DEFAULT 0,
+  -- AI calls the import expects to use, and the allowance above the cap it granted.
+  ai_calls   INT UNSIGNED NOT NULL DEFAULT 0,
+  extra_calls INT UNSIGNED NOT NULL DEFAULT 0,
+  created_at DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS import_batch_items (
+  id        INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  batch_id  INT UNSIGNED NOT NULL,
+  position  INT UNSIGNED NOT NULL,
+  file_name VARCHAR(255) NOT NULL,
+  doc_id    INT UNSIGNED NULL,
+  slug      VARCHAR(80)  NULL,
+  -- The slug before a "-2" style suffix was added, when one was.
+  base_slug VARCHAR(80)  NULL,
+  status    ENUM('imported', 'skipped') NOT NULL,
+  message   VARCHAR(500) NULL,
+  PRIMARY KEY (id),
+  KEY idx_batch_items_batch (batch_id, position),
+  CONSTRAINT fk_batch_items_batch FOREIGN KEY (batch_id) REFERENCES import_batches (id) ON DELETE CASCADE,
+  CONSTRAINT fk_batch_items_doc FOREIGN KEY (doc_id) REFERENCES docs (id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+INSERT IGNORE INTO schema_migrations (version) VALUES ('000_schema_migrations'), ('001_admin'), ('002_documents'), ('003_categories'), ('004_search'), ('005_links'), ('006_ai'), ('007_review');

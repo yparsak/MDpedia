@@ -16,3 +16,20 @@ export function receiveUpload({ maxBytes, fields = 5 }) {
       next();
     });
 }
+
+// The same for the bulk import: many files in one field named "files". A file over
+// the upload cap must be skipped and reported without failing the batch, so the
+// transport limit per file is a few times the cap; the service applies the real cap.
+// A file over the transport limit, or too many files, is an upload error.
+export function receiveUploads({ maxBytes, maxFiles, fields = 3 }) {
+  const upload = multer({
+    storage: multer.memoryStorage(),
+    limits: { fileSize: maxBytes * 4, files: maxFiles, fields, fieldSize: 10 * 1024, parts: maxFiles + fields + 5 },
+    defParamCharset: 'utf8',
+  }).array('files', maxFiles);
+  return (req, res, next) =>
+    upload(req, res, (err) => {
+      req.uploadError = err ?? null;
+      next();
+    });
+}

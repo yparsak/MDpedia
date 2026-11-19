@@ -1,0 +1,108 @@
+<%- include('../partials/header') %>
+
+<h1>Review: <%= doc.title %></h1>
+
+<% if (notice) { %>
+  <p class="notice notice-<%= notice.kind === 'ok' ? 'ok' : 'warn' %>"><%= notice.text %></p>
+<% } %>
+<% if (errors.length > 0) { %>
+  <div class="notice notice-error" role="alert">
+    <ul>
+      <% errors.forEach(function (e) { %><li><%= e %></li><% }) %>
+    </ul>
+  </div>
+<% } %>
+
+<p>
+  <span class="badge badge-<%= doc.status %>"><%= doc.statusLabel %></span>
+  <code><%= doc.slug %></code>
+  <a href="/admin/docs/<%= doc.id %>">Document page</a>
+  <a href="/admin/review">Review queue</a>
+</p>
+<% if (doc.ai) { %>
+  <p class="muted">
+    AI output from <code><%= doc.ai.provider %></code>, model <code><%= doc.ai.model %></code>,
+    prompt <code><%= doc.ai.promptVersion %></code>, <%= doc.ai.at %>.
+  </p>
+<% } %>
+<% if (doc.hasRawHtml) { %>
+  <p class="notice notice-warn">This document contains raw HTML. It is not rendered: the markup appears on the page as plain text.</p>
+<% } %>
+<% if (doc.inProgress) { %>
+  <p class="notice notice-warn">The AI is still working on this document. Review it once it is ready.</p>
+<% } else { %>
+<form class="form form-wide" method="post" action="/admin/review/<%= doc.id %>" autocomplete="off">
+  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+
+  <h2>Summary</h2>
+  <label for="summary">Summary</label>
+  <textarea id="summary" name="summary" rows="4" maxlength="<%= summaryMax %>"><%= summaryValue %></textarea>
+  <p class="field-note">
+    Up to <%= summaryMax %> characters. Changing it marks it as hand-edited, so a later AI run keeps it.
+    <% if (doc.summaryEdited) { %><span class="badge badge-ready">hand-edited</span><% } %>
+  </p>
+
+  <h2>Search keywords</h2>
+  <p class="field-note">
+    One entry per line. A keyword may end with <code>| 1</code>, <code>| 2</code> or <code>| 3</code> to set its weight.
+  </p>
+  <% termLists.forEach(function (t) { %>
+    <label for="terms-<%= t.list %>"><%= t.label.charAt(0).toUpperCase() + t.label.slice(1) %>s</label>
+    <textarea id="terms-<%= t.list %>" name="<%= t.list %>" rows="<%= t.list === 'questions' ? 3 : 4 %>"><%= termsValue[t.list] %></textarea>
+    <p class="field-note">Up to <%= t.max %>, each up to <%= t.length %> characters.</p>
+  <% }) %>
+
+  <h2>Categories</h2>
+  <p class="field-note">
+    Choose up to <%= categoryMax %>. The first is the primary category: it sets the breadcrumb and the document's URL.
+    The list starts from the categories the file named, otherwise from the AI's suggestions.
+  </p>
+  <% slots.forEach(function (s) { %>
+    <label for="category_<%= s.n %>"><%= s.label %></label>
+    <select id="category_<%= s.n %>" name="category_<%= s.n %>">
+      <option value="">None</option>
+      <% categoryOptions.forEach(function (o) { %><option value="<%= o.id %>"<%= o.id === s.value ? ' selected' : '' %>><%= o.label %></option><% }) %>
+    </select>
+  <% }) %>
+
+  <% if (proposals.length > 0) { %>
+    <h2>Proposed new categories</h2>
+    <p class="field-note">
+      Nothing is created unless you accept it. An accepted category is created with the name you give and the
+      document is filed under it, after the categories chosen above (the total is still at most <%= categoryMax %>).
+    </p>
+    <% proposals.forEach(function (p) { %>
+      <fieldset class="proposal">
+        <legend><%= p.name %></legend>
+        <p class="field-note">
+          Suggested by <%= p.origin %>, <%= p.parentLabel ? 'under ' + p.parentLabel : 'at the top level' %>.
+        </p>
+        <label for="proposal-name-<%= p.id %>">Name</label>
+        <input id="proposal-name-<%= p.id %>" name="proposal_name_<%= p.id %>" type="text" value="<%= p.name %>" maxlength="100">
+        <p>
+          <label><input type="radio" name="proposal_action_<%= p.id %>" value="accept"<%= p.action === 'accept' ? ' checked' : '' %>> Accept</label>
+          <label><input type="radio" name="proposal_action_<%= p.id %>" value="reject"<%= p.action === 'reject' ? ' checked' : '' %>> Reject</label>
+          <label><input type="radio" name="proposal_action_<%= p.id %>" value="keep"<%= p.action === 'keep' ? ' checked' : '' %>> Decide later</label>
+        </p>
+      </fieldset>
+    <% }) %>
+  <% } %>
+
+  <p>
+    <% if (doc.published) { %>
+      <button type="submit" name="intent" value="save" class="button">Save changes</button>
+      <span class="field-note">This document is already published.</span>
+    <% } else { %>
+      <button type="submit" name="intent" value="approve" class="button">Approve and publish</button>
+      <button type="submit" name="intent" value="save" class="button">Save without approving</button>
+    <% } %>
+  </p>
+</form>
+<% } %>
+
+<h2>Preview</h2>
+<div class="doc-body doc-preview">
+  <%- doc.html %>
+</div>
+
+<%- include('../partials/footer') %>

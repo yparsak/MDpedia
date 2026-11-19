@@ -1,0 +1,78 @@
+<%- include('../partials/header') %>
+
+<h1>Confirm the import</h1>
+
+<% if (errors.length > 0) { %>
+  <div class="notice notice-error" role="alert">
+    <ul>
+      <% errors.forEach(function (e) { %><li><%= e %></li><% }) %>
+    </ul>
+  </div>
+<% } %>
+
+<table class="facts">
+  <tr><th scope="row">Files to import</th><td><strong><%= accepted.length %></strong></td></tr>
+  <tr><th scope="row">Files skipped</th><td><%= skipped.length %></td></tr>
+  <tr>
+    <th scope="row">AI calls</th>
+    <td>
+      <% if (!aiOn) { %>
+        <strong>0</strong> <span class="muted">(the AI is not configured; documents go straight to "Ready for review")</span>
+      <% } else { %>
+        <strong><%= calls %></strong>
+        <span class="muted">(one per file; a retry or a repair attempt also counts, up to <%= maxAttempts %> tries per file)</span>
+      <% } %>
+    </td>
+  </tr>
+  <% if (aiOn) { %>
+    <tr><th scope="row">Daily cap</th><td><%= usage.used %> of <%= usage.cap %> calls used today, <%= remaining %> left under the cap<% if (usage.extra > 0) { %>, plus <%= usage.extra %> of an earlier allowance<% } %></td></tr>
+    <tr>
+      <th scope="row">Above the cap</th>
+      <td>
+        <% if (allowance > 0) { %>
+          <strong><%= allowance %></strong> call<%= allowance === 1 ? '' : 's' %> above the daily cap.
+          Confirming grants this one-time allowance; it is spent only by calls past the cap and is not renewed.
+        <% } else { %>
+          None needed: the cap covers this import.
+        <% } %>
+      </td>
+    </tr>
+  <% } %>
+  <tr>
+    <th scope="row">Last backup</th>
+    <td>
+      <% if (backupKnown) { %><%= backupDays %> day<%= backupDays === 1 ? '' : 's' %> ago
+      <% } else { %><span class="muted">Not tracked yet (backup status arrives in Phase 10). Take a dump yourself first if the library matters: <code>make db-dump</code>.</span><% } %>
+    </td>
+  </tr>
+</table>
+
+<% if (skipped.length > 0) { %>
+  <h2>Will be skipped</h2>
+  <ul>
+    <% skipped.forEach(function (s) { %><li><code><%= s.name %></code>: <%= s.reason %></li><% }) %>
+  </ul>
+<% } %>
+
+<h2>Will be imported</h2>
+<% if (accepted.length === 0) { %>
+  <p class="muted">No file can be imported.</p>
+<% } else { %>
+  <ul>
+    <% accepted.forEach(function (f) { %><li><code><%= f.name %></code> <span class="muted"><%= f.bytes %> bytes</span></li><% }) %>
+  </ul>
+<% } %>
+
+<% if (accepted.length > 0) { %>
+  <form class="form" method="post" action="/admin/import/confirm">
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <input type="hidden" name="token" value="<%= token %>">
+    <label><input type="checkbox" name="confirm" value="yes" required>
+      Import <%= accepted.length %> file<%= accepted.length === 1 ? '' : 's' %><% if (aiOn) { %>, make <%= calls %> AI call<%= calls === 1 ? '' : 's' %><% if (allowance > 0) { %> and allow <%= allowance %> above the daily cap<% } %><% } %>
+    </label>
+    <button type="submit">Import</button>
+  </form>
+<% } %>
+<p><a href="/admin/import">Start again</a></p>
+
+<%- include('../partials/footer') %>

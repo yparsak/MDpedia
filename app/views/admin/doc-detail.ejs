@@ -44,6 +44,9 @@
 <% } %>
 
 <h2>Visibility</h2>
+<% if (doc.status === 'ready') { %>
+  <p><a class="button" href="/admin/review/<%= doc.id %>">Review and approve</a></p>
+<% } %>
 <% if (doc.inProgress) { %>
   <p class="muted">Publishing is available once the AI has finished and the document is ready for review.</p>
 <% } else if (doc.published) { %>
@@ -64,7 +67,7 @@
     <p class="muted">
       Provider <code><%= doc.ai.provider %></code>, model <code><%= doc.ai.model %></code>,
       prompt <code><%= doc.ai.promptVersion %></code>, <%= doc.ai.at %>.
-      Its keywords and summary are below; the categories are only suggestions and are not applied.
+      Its keywords and summary are below; the categories are only suggestions until you approve them on the review screen.
     </p>
   <% } %>
   <% if (suggestions.categories.length > 0) { %>

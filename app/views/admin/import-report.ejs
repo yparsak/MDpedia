@@ -1,0 +1,47 @@
+<%- include('../partials/header') %>
+
+<h1>Import report <%= batch.id %></h1>
+
+<p class="muted">
+  <%= batch.createdAt %> by <%= batch.actor %>.
+  <strong><%= batch.imported %></strong> imported, <strong><%= batch.skipped %></strong> skipped, of <%= batch.fileCount %> file<%= batch.fileCount === 1 ? '' : 's' %>.
+  <%= batch.aiCalls %> AI call<%= batch.aiCalls === 1 ? '' : 's' %> expected<% if (batch.extraCalls > 0) { %>, <%= batch.extraCalls %> allowed above the daily cap<% } %>.
+</p>
+
+<% if (held > 0) { %>
+  <p class="notice notice-warn">
+    <%= held %> imported document<%= held === 1 ? ' has' : 's have' %> exceptions to handle before bulk approval (listed below).
+  </p>
+<% } %>
+<p><a class="button" href="/admin/review">Review queue</a> <a href="/admin/import">Another import</a></p>
+
+<table class="log">
+  <thead><tr><th>#</th><th>File</th><th>Result</th><th>Slug</th><th>State</th><th>Notes</th></tr></thead>
+  <tbody>
+    <% items.forEach(function (i) { %>
+      <tr>
+        <td><%= i.position %></td>
+        <td><code><%= i.fileName %></code></td>
+        <td><% if (i.imported) { %><span class="badge badge-published">imported</span><% } else { %><span class="badge badge-failed">skipped</span><% } %></td>
+        <td>
+          <% if (i.imported) { %>
+            <code><%= i.slug %></code>
+            <% if (i.suffixed) { %><span class="badge badge-warn">suffix added, "<%= i.baseSlug %>" was taken</span><% } %>
+          <% } %>
+        </td>
+        <td>
+          <% if (i.docId) { %>
+            <a href="/admin/docs/<%= i.docId %>"><%= i.title %></a>
+            <span class="badge badge-<%= i.docStatus %>"><%= i.docStatusLabel %></span>
+          <% } %>
+        </td>
+        <td>
+          <%= i.message %>
+          <% i.exceptions.forEach(function (e) { %><br><span class="badge badge-warn"><%= e %></span><% }) %>
+        </td>
+      </tr>
+    <% }) %>
+  </tbody>
+</table>
+
+<%- include('../partials/footer') %>
