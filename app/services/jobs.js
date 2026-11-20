@@ -13,8 +13,10 @@ const ERROR_MAX = 300;
 const shortError = (message) => cleanLine(message).slice(0, ERROR_MAX) || null;
 
 // On a connection (a transaction of the caller's), so a doc and its job appear together.
+// Resolves to the new job's id.
 export async function enqueueJob(conn, docId, type = 'ingest') {
-  await conn.query('INSERT INTO jobs (doc_id, type) VALUES (?, ?)', [docId, type]);
+  const [result] = await conn.query('INSERT INTO jobs (doc_id, type) VALUES (?, ?)', [docId, type]);
+  return result.insertId;
 }
 
 // Takes the oldest job that is due, or resolves to null. Resolves to { id, docId, type, attempts }.
@@ -67,8 +69,12 @@ export async function recoverRunning(pool, maxAttempts) {
     await markFailed(pool, id, 'The app restarted during every attempt.');
     // A replace job's doc stays live; only its staged version failed.
     if (type === 'replace') await pool.query("UPDATE docs SET staged_status = 'failed' WHERE id = ? AND staged_status = 'processing'", [docId]);
+    else if (type === 'edit') await pool.query("UPDATE edit_batch_docs SET status = 'failed', message = ? WHERE job_id = ? AND status IN ('queued', 'running')", ['The app restarted during every attempt.', id]);
     else await pool.query("UPDATE docs SET status = 'failed' WHERE id = ? AND status = 'processing'", [docId]);
   }
+  // A bulk edit doc that was running goes back to waiting with its job.
+  const [running] = await pool.query("SELECT id FROM jobs WHERE status = 'running' AND type = 'edit'");
+  if (running.length > 0) await pool.query("UPDATE edit_batch_docs SET status = 'queued' WHERE status = 'running' AND job_id IN (?)", [running.map((j) => j.id)]);
   const [requeued] = await pool.query("UPDATE jobs SET status = 'queued', locked_at = NULL WHERE status = 'running'");
   return { requeued: requeued.affectedRows, failed: exhausted.length };
 }
@@ -93,6 +99,7 @@ export async function retryJob(pool, jobId) {
   if (result.affectedRows === 0) return false;
   await pool.query("UPDATE docs d JOIN jobs j ON j.doc_id = d.id SET d.status = 'uploaded' WHERE j.id = ? AND j.type = 'ingest' AND d.status = 'failed'", [jobId]);
   await pool.query("UPDATE docs d JOIN jobs j ON j.doc_id = d.id SET d.staged_status = 'processing' WHERE j.id = ? AND j.type = 'replace' AND d.staged_status = 'failed'", [jobId]);
+  await pool.query("UPDATE edit_batch_docs e JOIN jobs j ON j.id = e.job_id SET e.status = 'queued', e.message = NULL WHERE j.id = ? AND j.type = 'edit' AND e.status = 'failed'", [jobId]);
   return true;
 }
 

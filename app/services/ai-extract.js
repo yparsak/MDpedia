@@ -87,7 +87,8 @@ async function applyStagedExtraction(pool, config, doc, hash, result) {
     ...staged.data,
     ...termsToFrontMatter(data.terms),
     ...(doc.summary_edited ? {} : { summary: data.summary, summary_edited: undefined }),
-    ai: { provider, model, prompt_version: promptVersion, date },
+    // Keys another step added (a bulk edit's provenance) are kept.
+    ai: { ...staged.data.ai, provider, model, prompt_version: promptVersion, date },
   };
   await writeStagedFile(config, doc.id, serializeFrontMatter(frontMatter, staged.body), hash);
   await pool.query("UPDATE docs SET staged_status = 'ready' WHERE id = ? AND staged_hash = ?", [doc.id, hash]);

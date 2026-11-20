@@ -1,0 +1,97 @@
+<%- include('../partials/header') %>
+
+<h1>Bulk edit <%= batch.id %></h1>
+
+<% if (notice) { %>
+  <p class="notice notice-<%= notice.kind === 'ok' ? 'ok' : 'warn' %>"><%= notice.text %></p>
+<% } %>
+<% if (result) { %>
+  <p class="notice notice-ok"><strong><%= result.approved %></strong> document<%= result.approved === 1 ? '' : 's' %> approved. Readers now see the new version<%= result.approved === 1 ? '' : 's' %>.</p>
+  <% if (result.skipped.length > 0) { %>
+    <div class="notice notice-warn">
+      <p>Not approved:</p>
+      <ul>
+        <% result.skipped.forEach(function (s) { %><li><a href="/admin/docs/<%= s.docId %>"><%= s.title %></a>: <%= s.reason %></li><% }) %>
+      </ul>
+    </div>
+  <% } %>
+<% } %>
+
+<%- include('../partials/ai-paused', { ai: ai }) %>
+<% if (ai.waitingForCap) { %>
+  <p class="notice notice-warn">
+    The daily cap is reached (<%= ai.usage.used %> of <%= ai.usage.cap %> calls today).
+    Queued work waits until the count resets tomorrow.
+  </p>
+<% } %>
+
+<p class="muted">
+  Started <%= batch.createdAt %> by <%= batch.actor %>. Prompt <code><%= batch.prompt %></code>.
+  <%= batch.aiCalls %> AI call<%= batch.aiCalls === 1 ? '' : 's' %> expected<% if (batch.extraCalls > 0) { %>, <%= batch.extraCalls %> allowed above the daily cap<% } %>;
+  each failed check is retried at most <%= batch.maxRetries %> time<%= batch.maxRetries === 1 ? '' : 's' %>.
+</p>
+
+<h2>Instruction</h2>
+<pre class="plain-list ai-output"><%= batch.instruction %></pre>
+
+<div class="stats">
+  <div class="stat"><strong><%= batch.state %></strong>state</div>
+  <div class="stat"><strong><%= batch.total %></strong>documents</div>
+  <div class="stat"><strong><%= batch.active %></strong>queued or running</div>
+  <div class="stat"><strong><%= batch.ready %></strong>ready for review</div>
+  <div class="stat"><strong><%= batch.problems %></strong>failed or refused</div>
+  <div class="stat"><strong><%= batch.approved %></strong>approved</div>
+</div>
+
+<% if (batch.active > 0) { %>
+  <p class="muted">Jobs run in the background, one at a time. Reload this page for progress; the <a href="/admin/jobs">Jobs page</a> shows the queue.</p>
+<% } %>
+
+<div class="inline-actions">
+  <% if (batch.active > 0) { %>
+    <form class="inline-form" method="post" action="/admin/edit/<%= batch.id %>/stop">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <button type="submit" class="button">Stop the batch</button>
+    </form>
+  <% } %>
+  <% if (batch.problems > 0 && aiOn) { %>
+    <form class="inline-form" method="post" action="/admin/edit/<%= batch.id %>/retry">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <button type="submit" class="button">Retry failed</button>
+    </form>
+  <% } %>
+  <a href="/admin/edit">Another bulk edit</a>
+</div>
+
+<form method="post" action="/admin/edit/<%= batch.id %>/approve">
+  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+  <table class="log">
+    <thead><tr><th></th><th>Document</th><th>Status</th><th>Result</th><th></th></tr></thead>
+    <tbody>
+      <% rows.forEach(function (r) { %>
+        <tr>
+          <td><% if (r.canApprove) { %><input type="checkbox" name="ids" value="<%= r.docId %>" aria-label="Select <%= r.title %>"><% } %></td>
+          <td><a href="/admin/docs/<%= r.docId %>"><%= r.title %></a> <code><%= r.slug %></code></td>
+          <td><span class="badge badge-<%= r.badge %>"><%= r.statusLabel %></span></td>
+          <td>
+            <% if (r.message) { %><span class="<%= r.status === 'failed' || r.status === 'attention' ? 'error-text' : 'muted' %>"><%= r.message %></span><br><% } %>
+            <% if (r.note) { %><span class="muted"><%= r.note %></span><br><% } %>
+            <% if (r.checkResult) { %><span class="muted">Self-check: <%= r.checkResult %></span><br><% } %>
+            <% if (r.addedLines !== null && r.status !== 'attention' && r.status !== 'failed') { %><span class="muted"><%= r.addedLines %> line<%= r.addedLines === 1 ? '' : 's' %> added.</span><% } %>
+            <% if (r.aiCalls > 0) { %><span class="muted"><%= r.aiCalls %> AI call<%= r.aiCalls === 1 ? '' : 's' %>.</span><% } %>
+          </td>
+          <td><% if (r.canReview) { %><a href="/admin/edit/<%= batch.id %>/doc/<%= r.docId %>">Review the diff</a><% } %></td>
+        </tr>
+      <% }) %>
+    </tbody>
+  </table>
+  <% if (batch.ready > 0) { %>
+    <div class="inline-actions">
+      <button type="submit" class="button" name="mode" value="selected">Approve selected</button>
+      <button type="submit" class="button" name="mode" value="ready">Approve all that are ready</button>
+    </div>
+    <p class="field-note">Approval swaps the new version in for readers. A document still refreshing its keywords is skipped; approve it after a reload.</p>
+  <% } %>
+</form>
+
+<%- include('../partials/footer') %>

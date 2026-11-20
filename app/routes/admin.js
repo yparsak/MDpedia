@@ -18,6 +18,7 @@ import { adminAttentionRouter } from './admin-attention.js';
 import { adminJobsRouter } from './admin-jobs.js';
 import { adminCategoriesRouter } from './admin-categories.js';
 import { adminDocsRouter } from './admin-docs.js';
+import { adminEditRouter } from './admin-edit.js';
 import { adminImportRouter } from './admin-import.js';
 import { adminReplaceRouter } from './admin-replace.js';
 import { adminReviewRouter } from './admin-review.js';
@@ -55,7 +56,9 @@ export function adminRouter({ pool, config, version }) {
   const passwordThrottle = createThrottle({ maxFails: config.rate.loginFailsPer15Min });
 
   router.use(noStore);
-  router.use(express.urlencoded({ extended: false, limit: '64kb' }));
+  // The bulk edit router reads its own, larger forms (a proposal can be as big as an upload).
+  const formBody = express.urlencoded({ extended: false, limit: '64kb' });
+  router.use((req, res, next) => (req.path === '/edit' || req.path.startsWith('/edit/') ? next() : formBody(req, res, next)));
   router.use(loadAdminSession({ pool, config }));
 
   const needAdmin = requireAdmin({ config });
@@ -216,6 +219,7 @@ export function adminRouter({ pool, config, version }) {
 
   router.use('/review', adminReviewRouter({ pool, config, needAdmin }));
   router.use('/import', adminImportRouter({ pool, config, needAdmin }));
+  router.use('/edit', adminEditRouter({ pool, config, needAdmin }));
 
   // ------------------------------------------------------------- categories
 

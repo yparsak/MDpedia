@@ -87,6 +87,10 @@ const schema = z.object({
   MAX_UPLOAD_BYTES: int('262144', 1, 104857600),
   BULK_MAX_FILES: int('100', 1, 1000),
 
+  BULK_EDIT_MAX_DOCS: int('50', 1, 1000),
+  BULK_EDIT_MAX_RETRIES: int('2', 0, 5),
+  BULK_EDIT_MAX_TOKENS: int('8000', 500, 32000),
+
   JOB_POLL_INTERVAL_SECONDS: int('5', 1, 3600),
   RECONCILE_INTERVAL_MINUTES: int('15', 1, 1440),
   JOB_RETENTION_DAYS: int('30', 1, 3650),
@@ -174,6 +178,7 @@ export function loadConfig(env = process.env) {
         circuitBreakerFailures: v.AI_CIRCUIT_BREAKER_FAILURES,
       },
       uploads: { maxBytes: v.MAX_UPLOAD_BYTES, bulkMaxFiles: v.BULK_MAX_FILES },
+      bulkEdit: { maxDocs: v.BULK_EDIT_MAX_DOCS, maxRetries: v.BULK_EDIT_MAX_RETRIES, maxTokens: v.BULK_EDIT_MAX_TOKENS },
       worker: {
         pollIntervalSeconds: v.JOB_POLL_INTERVAL_SECONDS,
         reconcileIntervalMinutes: v.RECONCILE_INTERVAL_MINUTES,

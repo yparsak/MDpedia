@@ -226,3 +226,14 @@ code { background: #f2f4f5; padding: 0.1em 0.35em; border-radius: 3px; }
 
 /* Phase 8: keyword lists side by side on the replace page */
 .plain-list { margin: 0; white-space: pre-wrap; font: inherit; }
+
+/* Phase 9: bulk AI edit, side-by-side diff */
+.diff { border-collapse: collapse; width: 100%; table-layout: fixed; font-size: 0.85rem; }
+.diff td { border-bottom: 1px solid var(--line); padding: 0 0.4rem; vertical-align: top; }
+.diff .no { width: 3rem; color: var(--muted); text-align: right; user-select: none; }
+.diff .text { width: calc(50% - 3rem); white-space: pre-wrap; overflow-wrap: anywhere; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+.diff .diff-add { background: #e8f5ec; }
+.diff .diff-del { background: var(--error-bg); }
+.diff .diff-skip { color: var(--muted); text-align: center; background: #f2f4f5; font-family: inherit; }
+.form-full { max-width: none; }
+.form-full textarea { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.85rem; }

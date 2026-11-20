@@ -15,6 +15,7 @@ import { recordAudit } from './audit.js';
 import { aiConfigured } from '../config.js';
 import { AiAborted, AiError } from './ai-provider.js';
 import { getCircuit, recordFailure, recordSuccess } from './ai-circuit.js';
+import { editForDoc, setEditDocState } from './ai-edit.js';
 import { extractForDoc, extractForStaged } from './ai-extract.js';
 import { AiCapReached, cappedProvider, getUsage } from './ai-usage.js';
 import { DocFileError } from './docfiles.js';
@@ -66,9 +67,13 @@ export function createWorker({ pool, config }) {
     if (retry) {
       const backoff = err.retryAfterMs ?? BACKOFF_BASE_MS * 2 ** (job.attempts - 1);
       await requeue(pool, job.id, { delayMs: backoff, message: `Attempt ${job.attempts} failed, will retry. ${failure}` });
+      if (job.type === 'edit') await setEditDocState(pool, job.id, 'queued', { message: `Attempt ${job.attempts} failed, will retry. ${failure}` });
       return;
     }
-    await markFailed(pool, job.id, job.attempts > 1 ? `Failed after ${job.attempts} attempts. ${failure}` : failure);
+    const finalMessage = job.attempts > 1 ? `Failed after ${job.attempts} attempts. ${failure}` : failure;
+    await markFailed(pool, job.id, finalMessage);
+    // A bulk edit job leaves the live doc alone; only its batch entry failed.
+    if (job.type === 'edit') return setEditDocState(pool, job.id, 'failed', { message: finalMessage });
     // A replace job leaves the live doc alone; only its staged version failed.
     if (job.type === 'replace') {
       await pool.query("UPDATE docs SET staged_status = 'failed' WHERE id = ? AND staged_status = 'processing'", [job.docId]);
@@ -77,17 +82,30 @@ export function createWorker({ pool, config }) {
     await setDocStatus(job.docId, 'failed', ['uploaded', 'processing']);
   }
 
+  // The work of each job type. Ingest and replace are the Phase 6 and 8 jobs, edit is a bulk edit (Phase 9).
+  function runByType(job) {
+    const options = { signal: shutdown.signal };
+    if (job.type === 'replace') return extractForStaged(pool, config, provider, job.docId, options);
+    if (job.type === 'edit') return editForDoc(pool, config, provider, job, options);
+    return extractForDoc(pool, config, provider, job.docId, options);
+  }
+
+  // A job put back unharmed: a bulk edit doc waits again with it.
+  async function releaseJob(job, message) {
+    await release(pool, job.id, message);
+    if (job.type === 'edit') await setEditDocState(pool, job.id, 'queued', { onlyFrom: ['running'] });
+  }
+
   async function runJob(job) {
-    const replacing = job.type === 'replace';
-    if (!replacing) await setDocStatus(job.docId, 'processing', ['uploaded']);
+    if (job.type === 'ingest') await setDocStatus(job.docId, 'processing', ['uploaded']);
+    if (job.type === 'edit') await setEditDocState(pool, job.id, 'running', { onlyFrom: ['queued', 'running'] });
     try {
-      if (replacing) await extractForStaged(pool, config, provider, job.docId, { signal: shutdown.signal });
-      else await extractForDoc(pool, config, provider, job.docId, { signal: shutdown.signal });
+      await runByType(job);
       await markDone(pool, job.id);
       await recordSuccess(pool);
     } catch (err) {
-      if (err instanceof AiAborted) return release(pool, job.id, 'Interrupted by a restart. It will run again.');
-      if (err instanceof AiCapReached) return release(pool, job.id, err.message);
+      if (err instanceof AiAborted) return releaseJob(job, 'Interrupted by a restart. It will run again.');
+      if (err instanceof AiCapReached) return releaseJob(job, err.message);
       await handleFailure(job, err);
     }
   }

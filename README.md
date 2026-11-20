@@ -7,7 +7,7 @@ A Markdown wiki for a Raspberry Pi: math rendering, keyword search, and AI-assis
 - `db/README.md`: the SQL workflow.
 - `samples/README.md`: the test fixtures.
 
-## Quick start (through Phase 8)
+## Quick start (through Phase 9)
 
 ```bash
 cp .env.example .env     # fill in DB_PASSWORD and SESSION_SECRET (openssl rand -hex 32)
@@ -16,7 +16,7 @@ mkdir -p /srv/MDpedia-data/docs /srv/MDpedia-data/staging   # your DOCS_DIR and 
 make env-check
 make install
 make migrate-status
-make migrate      # applies 000 to 008 (takes a dump first)
+make migrate      # applies 000 to 009 (takes a dump first)
 make admin        # creates the admin; also resets the password
 make start
 ```
@@ -83,6 +83,13 @@ Then open `http://<pi-address>:3000/admin` and log in.
   keep seeing the old version while the AI refreshes the keywords (categories carry over; a hand-edited summary
   is kept). Approving swaps the file into place and updates the database in one transaction. A staged version
   nobody approves is removed after `STAGED_RETENTION_DAYS`.
+- Bulk AI edit: `/admin/edit` takes an instruction and a scope (a category with its subcategories, named
+  documents, or both; published only unless ticked). A dry run lists the documents, the AI calls, the room under
+  `AI_DAILY_CAP` and the backup age; confirming starts one `edit` job per document (at most `BULK_EDIT_MAX_DOCS`).
+  The AI may only add: a result that alters the original text, fails the upload checks or fails the model's own
+  check (retried at most `BULK_EDIT_MAX_RETRIES` times) marks the document "needs attention". A good result is
+  a staged version (as in Replace), shown as a side-by-side diff to approve, edit by hand and approve, or reject.
+  Batches can be stopped, and failed documents retried. `make mock-ai` runs a stand-in provider for testing.
 - Reconciliation: the files win. At startup and every `RECONCILE_INTERVAL_MINUTES` (and on "Rescan now") the
   docs directory is compared with the database by size and modified time, then body hash. Invalid front
   matter, a changed `id` or `slug`, or a missing file marks the document on `/admin/attention` while readers keep

@@ -1,0 +1,89 @@
+<%- include('../partials/header') %>
+
+<h1>Bulk edit <%= batch.id %>: <%= row.title %></h1>
+
+<% if (notice) { %>
+  <p class="notice notice-<%= notice.kind === 'ok' ? 'ok' : 'warn' %>"><%= notice.text %></p>
+<% } %>
+<% if (errors.length > 0) { %>
+  <div class="notice notice-error" role="alert">
+    <ul>
+      <% errors.forEach(function (e) { %><li><%= e %></li><% }) %>
+    </ul>
+  </div>
+<% } %>
+
+<p>
+  <a href="/admin/edit/<%= batch.id %>">Back to the batch</a>.
+  Slug <code><%= row.slug %></code>. <span class="badge badge-<%= row.badge %>"><%= row.statusLabel %></span>
+  Readers see the current version until you approve.
+</p>
+
+<table class="facts">
+  <tr><th scope="row">Self-check</th><td><%= row.checkResult || 'none' %></td></tr>
+  <tr><th scope="row">Lines added</th><td><%= row.addedLines === null ? '' : row.addedLines %></td></tr>
+  <tr><th scope="row">AI calls</th><td><%= row.aiCalls %></td></tr>
+  <tr><th scope="row">Keywords</th><td><a href="/admin/replace/<%= row.docId %>">Compare the keywords and see a rendered preview</a></td></tr>
+</table>
+<% if (row.message) { %><p class="muted"><%= row.message %></p><% } %>
+<% if (row.note) { %><p class="notice notice-warn"><%= row.note %></p><% } %>
+
+<% if (!row.canReview) { %>
+  <p class="notice notice-warn">There is no proposal to review for this document (status: <%= row.statusLabel %>).</p>
+<% } else if (problem) { %>
+  <p class="notice notice-error" role="alert"><%= problem %></p>
+<% } else if (diff) { %>
+  <h2>Current version and proposal</h2>
+  <p class="muted"><%= diff.added %> line<%= diff.added === 1 ? '' : 's' %> added or changed, <%= diff.removed %> removed or changed. Unchanged stretches are folded.</p>
+  <table class="diff">
+    <thead><tr><th class="no"></th><th class="text">Current</th><th class="no"></th><th class="text">Proposal</th></tr></thead>
+    <tbody>
+      <% diff.rows.forEach(function (d) { %>
+        <% if (d.kind === 'skip') { %>
+          <tr><td colspan="4" class="diff-skip"><%= d.left %> unchanged line<%= d.left === '1' ? '' : 's' %></td></tr>
+        <% } else { %>
+          <tr>
+            <td class="no"><%= d.leftNo === null ? '' : d.leftNo %></td>
+            <td class="text <%= d.kind === 'del' || d.kind === 'change' ? 'diff-del' : '' %>"><%= d.left %></td>
+            <td class="no"><%= d.rightNo === null ? '' : d.rightNo %></td>
+            <td class="text <%= d.kind === 'add' || d.kind === 'change' ? 'diff-add' : '' %>"><%= d.right %></td>
+          </tr>
+        <% } %>
+      <% }) %>
+    </tbody>
+  </table>
+
+  <h2>Decide</h2>
+  <div class="inline-actions">
+    <% if (row.canApprove) { %>
+      <form class="inline-form" method="post" action="/admin/edit/<%= batch.id %>/doc/<%= row.docId %>/approve">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        <button type="submit" class="button">Approve</button>
+      </form>
+    <% } %>
+    <form class="inline-form" method="post" action="/admin/edit/<%= batch.id %>/doc/<%= row.docId %>/reject">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <button type="submit" class="button">Reject</button>
+    </form>
+  </div>
+
+  <% if (!row.refreshing) { %>
+    <h2>Edit the proposal by hand</h2>
+    <p class="field-note">
+      The whole text of the proposed version, front matter not included. Edits you make here are not held to the add-only rule.
+      Saving keeps it staged; the keywords are not refreshed again.
+    </p>
+    <form class="form form-full" method="post" action="/admin/edit/<%= batch.id %>/doc/<%= row.docId %>/save" autocomplete="off">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <label for="body">Proposed text</label>
+      <textarea id="body" name="body" rows="24" required>
+<%= bodyValue %></textarea>
+      <div class="inline-actions">
+        <button type="submit" name="intent" value="save">Save my edit</button>
+        <% if (row.canApprove) { %><button type="submit" name="intent" value="approve">Save and approve</button><% } %>
+      </div>
+    </form>
+  <% } %>
+<% } %>
+
+<%- include('../partials/footer') %>

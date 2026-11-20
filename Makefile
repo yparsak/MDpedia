@@ -39,7 +39,7 @@ MAX_UPLOAD_BYTES_DEFAULT := 262144
 .PHONY: help env-check install start dev lint audit test \
         db-check db-shell db-dump migrate migrate-status migrate-one rollback-one \
         schema-dump seed-categories test-db-reset \
-        admin backup health smoke samples-verify check-raw-tags clean
+        admin backup health smoke mock-ai samples-verify check-raw-tags clean
 
 # ----------------------------------------------------------------------- help
 
@@ -55,6 +55,7 @@ help:
 	@echo "    make dev               npm start with NODE_ENV=development"
 	@echo "    make health            curl /healthz and print the result"
 	@echo "    make smoke             the section 4 smoke test, as a checklist"
+	@echo "    make mock-ai           a stand-in AI provider for testing the bulk AI edit (Phase 9)"
 	@echo
 	@echo "  Database"
 	@echo "    make db-check          connect and print server version and schema version"
@@ -219,6 +220,10 @@ health:
 	echo "GET /healthz -> $$code"; cat /tmp/mdpedia-health.$$$$ 2>/dev/null; echo; rm -f /tmp/mdpedia-health.$$$$; \
 	test "$$code" = "200"
 
+# A stand-in AI provider (scripts/mock-ai-server.js). Point AI_BASE_URL at it in .env.
+mock-ai:
+	node scripts/mock-ai-server.js
+
 smoke: health
 	@echo
 	@echo "Section 4 smoke test. Run these by hand in the browser after every phase:"
@@ -255,6 +260,13 @@ samples-verify:
 	t=$$(grep -h '^# ' $(SAMPLES_DIR)/20-bulk/10-logic-first.md $(SAMPLES_DIR)/20-bulk/11-logic-second.md | sort -u | wc -l | tr -d ' '); \
 	if [ "$$t" = "1" ]; then echo "  ok   the two logic files still share a title"; \
 	else echo "  FAIL the two logic files no longer share a title"; fail=1; fi; \
+	n=$$(ls -1 $(SAMPLES_DIR)/40-bulk-edit/*.md | wc -l | tr -d ' '); \
+	if [ "$$n" = "5" ]; then echo "  ok   40-bulk-edit/ holds 5 documents"; \
+	else echo "  FAIL 40-bulk-edit/ holds $$n documents, expected 5"; fail=1; fi; \
+	if grep -q '^## Examples' $(SAMPLES_DIR)/40-bulk-edit/02-derivative-rules.md; then echo "  ok   02-derivative-rules.md already has an Examples section"; \
+	else echo "  FAIL 02-derivative-rules.md lost its Examples section"; fail=1; fi; \
+	if grep -qi 'ignore' $(SAMPLES_DIR)/40-bulk-edit/04-injection.md; then echo "  ok   04-injection.md still carries the injected paragraph"; \
+	else echo "  FAIL 04-injection.md lost the injected paragraph"; fail=1; fi; \
 	exit $$fail
 
 # Brainstorm 5.7: raw output is allowed only for sanitized document HTML and

@@ -106,3 +106,16 @@ export function parseReply(content, tree) {
   });
   return { ok: true, data: { summary: reply.summary, terms, categories: resolved.categories, proposals: resolved.proposals } };
 }
+
+// ---------------------------------------------------- self-check (Phase 9)
+
+const checkSchema = z.object({ pass: z.boolean(), reason: z.string().max(1000).default('') });
+
+// The model's verdict on its own edit. Resolves to { pass, reason }; a reply that is
+// not the expected JSON counts as a fail, with a reason, so it costs a retry like any other.
+export function parseCheckReply(content) {
+  const json = extractJson(content);
+  const checked = checkSchema.safeParse(json);
+  if (!checked.success) return { pass: false, reason: 'the self-check reply was not the expected JSON' };
+  return { pass: checked.data.pass, reason: plainText(checked.data.reason).slice(0, 300) };
+}

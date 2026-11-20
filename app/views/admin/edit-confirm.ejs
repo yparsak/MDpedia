@@ -1,0 +1,118 @@
+<%- include('../partials/header') %>
+
+<h1>Confirm the bulk edit</h1>
+
+<% if (errors.length > 0) { %>
+  <div class="notice notice-error" role="alert">
+    <ul>
+      <% errors.forEach(function (e) { %><li><%= e %></li><% }) %>
+    </ul>
+  </div>
+<% } %>
+
+<%- include('../partials/ai-paused', { ai: ai }) %>
+<% if (!aiOn) { %>
+  <p class="notice notice-warn">The AI is not configured, so the edit cannot run.</p>
+<% } %>
+<% if (overLimit) { %>
+  <p class="notice notice-error" role="alert">
+    The scope matches <%= matched.length %> documents, over the limit of <%= maxDocs %> per batch (<code>BULK_EDIT_MAX_DOCS</code>).
+    Narrow the scope and try again.
+  </p>
+<% } %>
+
+<h2>Instruction</h2>
+<pre class="plain-list ai-output"><%= scope.instruction %></pre>
+
+<table class="facts">
+  <tr>
+    <th scope="row">Scope</th>
+    <td>
+      <% if (scopeLabel) { %>Category <strong><%= scopeLabel %></strong> and its subcategories<% } %>
+      <% if (scopeLabel && scope.refs.length > 0) { %> plus <% } %>
+      <% if (scope.refs.length > 0) { %><%= scope.refs.length %> named document<%= scope.refs.length === 1 ? '' : 's' %><% } %>.
+      <%= scope.includeUnpublished ? 'Unpublished documents included.' : 'Published documents only.' %>
+    </td>
+  </tr>
+  <tr><th scope="row">Documents to edit</th><td><strong><%= matched.length %></strong> <span class="muted">(limit <%= maxDocs %>)</span></td></tr>
+  <tr><th scope="row">Left out</th><td><%= excluded.length %><% if (!scope.includeUnpublished) { %>, and <%= unpublished %> unpublished<% } %></td></tr>
+  <tr>
+    <th scope="row">AI calls</th>
+    <td>
+      <strong><%= calls.expected %></strong>
+      <span class="muted">
+        (three per document: the edit, the model's check of its own result, and a keyword refresh).
+        A result that fails a check is retried at most <%= maxRetries %> time<%= maxRetries === 1 ? '' : 's' %>, and every retry counts too:
+        at most <%= calls.worst %> calls if every document needs every retry.
+      </span>
+    </td>
+  </tr>
+  <tr><th scope="row">Daily cap</th><td><%= ai.usage.used %> of <%= ai.usage.cap %> calls used today, <%= remaining %> left under the cap<% if (ai.usage.extra > 0) { %>, plus <%= ai.usage.extra %> of an earlier allowance<% } %></td></tr>
+  <tr>
+    <th scope="row">Above the cap</th>
+    <td>
+      <% if (allowance > 0) { %>
+        <strong><%= allowance %></strong> call<%= allowance === 1 ? '' : 's' %> above the daily cap.
+        Confirming grants this one-time allowance; it is spent only by calls past the cap and is not renewed.
+        Retries beyond it wait until the daily count resets, and the batch pauses meanwhile.
+      <% } else { %>
+        None needed: the cap covers the expected calls. If retries use up the rest of the cap, the batch pauses until the count resets.
+      <% } %>
+    </td>
+  </tr>
+  <tr>
+    <th scope="row">Last backup</th>
+    <td>
+      <% if (backupKnown) { %><%= backupDays %> day<%= backupDays === 1 ? '' : 's' %> ago
+      <% } else { %><span class="muted">Not tracked yet (backup status arrives in Phase 10). Nothing goes live without your approval, but take a dump first if the library matters: <code>make db-dump</code>.</span><% } %>
+    </td>
+  </tr>
+</table>
+
+<% if (unknown.length > 0) { %>
+  <p class="notice notice-warn">No document matches: <% unknown.forEach(function (u, i) { %><code><%= u %></code><%= i < unknown.length - 1 ? ', ' : '' %><% }) %>.</p>
+<% } %>
+
+<% if (excluded.length > 0) { %>
+  <h2>Left out (<%= excluded.length %>)</h2>
+  <table class="log">
+    <thead><tr><th>Document</th><th>Why</th></tr></thead>
+    <tbody>
+      <% excluded.forEach(function (d) { %>
+        <tr><td><a href="/admin/docs/<%= d.id %>"><%= d.title %></a> <code><%= d.slug %></code></td><td><%= d.reason %></td></tr>
+      <% }) %>
+    </tbody>
+  </table>
+<% } %>
+
+<h2>Will be edited (<%= matched.length %>)</h2>
+<% if (matched.length === 0) { %>
+  <p class="muted">No document can be edited with this scope.</p>
+<% } else { %>
+  <ul>
+    <% matched.forEach(function (d) { %>
+      <li>
+        <a href="/admin/docs/<%= d.id %>"><%= d.title %></a> <code><%= d.slug %></code>
+        <span class="muted"><%= d.bytes %> bytes<%= d.published ? '' : ', not published' %></span>
+      </li>
+    <% }) %>
+  </ul>
+<% } %>
+
+<% if (canConfirm) { %>
+  <form class="form" method="post" action="/admin/edit/confirm">
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <input type="hidden" name="instruction" value="<%= scope.instruction %>">
+    <input type="hidden" name="category" value="<%= scope.categoryId === null ? '' : scope.categoryId %>">
+    <input type="hidden" name="docs" value="<%= scope.refs.join('\n') %>">
+    <% if (scope.includeUnpublished) { %><input type="hidden" name="include_unpublished" value="yes"><% } %>
+    <input type="hidden" name="doc_ids" value="<%= docIds %>">
+    <label><input type="checkbox" name="confirm" value="yes" required>
+      Edit <%= matched.length %> document<%= matched.length === 1 ? '' : 's' %>, make <%= calls.expected %> AI call<%= calls.expected === 1 ? '' : 's' %><% if (allowance > 0) { %> and allow <%= allowance %> above the daily cap<% } %>
+    </label>
+    <button type="submit">Start the bulk edit</button>
+  </form>
+<% } %>
+<p><a href="/admin/edit">Start again</a></p>
+
+<%- include('../partials/footer') %>

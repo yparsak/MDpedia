@@ -262,6 +262,44 @@ CREATE TABLE IF NOT EXISTS import_batch_items (
   CONSTRAINT fk_batch_items_doc FOREIGN KEY (doc_id) REFERENCES docs (id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- Bulk AI edit (Phase 9).
+CREATE TABLE IF NOT EXISTS edit_batches (
+  id             INT UNSIGNED  NOT NULL AUTO_INCREMENT,
+  actor          VARCHAR(64)   NOT NULL,
+  instruction    VARCHAR(2000) NOT NULL,
+  scope          VARCHAR(2000) NOT NULL,
+  status         ENUM('running', 'stopped') NOT NULL DEFAULT 'running',
+  prompt_version VARCHAR(20)   NOT NULL,
+  max_retries    TINYINT UNSIGNED NOT NULL DEFAULT 0,
+  ai_calls       INT UNSIGNED  NOT NULL DEFAULT 0,
+  extra_calls    INT UNSIGNED  NOT NULL DEFAULT 0,
+  created_at     DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  stopped_at     DATETIME      NULL,
+  PRIMARY KEY (id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS edit_batch_docs (
+  id            INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  batch_id      INT UNSIGNED NOT NULL,
+  doc_id        INT UNSIGNED NOT NULL,
+  job_id        INT UNSIGNED NULL,
+  position      INT UNSIGNED NOT NULL,
+  status        ENUM('queued', 'running', 'ready', 'attention', 'failed', 'approved', 'rejected', 'cancelled') NOT NULL DEFAULT 'queued',
+  proposal_hash CHAR(64)     NULL,
+  added_lines   INT UNSIGNED NULL,
+  ai_calls      INT UNSIGNED NOT NULL DEFAULT 0,
+  message       VARCHAR(500) NULL,
+  check_result  VARCHAR(500) NULL,
+  updated_at    DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  UNIQUE KEY uq_edit_batch_doc (batch_id, doc_id),
+  KEY idx_edit_batch_docs_job (job_id),
+  KEY idx_edit_batch_docs_doc (doc_id, status),
+  CONSTRAINT fk_edit_docs_batch FOREIGN KEY (batch_id) REFERENCES edit_batches (id) ON DELETE CASCADE,
+  CONSTRAINT fk_edit_docs_doc FOREIGN KEY (doc_id) REFERENCES docs (id) ON DELETE CASCADE,
+  CONSTRAINT fk_edit_docs_job FOREIGN KEY (job_id) REFERENCES jobs (id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- Files the reconciliation scan refused (Phase 8).
 CREATE TABLE IF NOT EXISTS file_issues (
   file_name   VARCHAR(255) NOT NULL,
@@ -286,4 +324,4 @@ CREATE TABLE IF NOT EXISTS reconcile_state (
 
 INSERT IGNORE INTO reconcile_state (id) VALUES (1);
 
-INSERT IGNORE INTO schema_migrations (version) VALUES ('000_schema_migrations'), ('001_admin'), ('002_documents'), ('003_categories'), ('004_search'), ('005_links'), ('006_ai'), ('007_review'), ('008_replace');
+INSERT IGNORE INTO schema_migrations (version) VALUES ('000_schema_migrations'), ('001_admin'), ('002_documents'), ('003_categories'), ('004_search'), ('005_links'), ('006_ai'), ('007_review'), ('008_replace'), ('009_bulk_edit');

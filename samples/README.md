@@ -79,6 +79,22 @@ tree differs.
 `31`, `32` and `33` are placed in the docs directory over SSH rather than
 uploaded, since they test reconciliation, not the upload path.
 
+## Phase 9: Bulk AI edit
+
+`40-bulk-edit/` holds five short math documents. Import them (Bulk import), approve and publish them, then run a
+bulk edit over the category `math`. They assume a tree with `math/calculus` and `math/analysis`.
+
+| File | What it proves |
+|---|---|
+| `01-limits.md` | A normal document with math and headings: the plain add-only case. |
+| `02-derivative-rules.md` | Already has an `## Examples` section. The edit must add to it or beside it and leave the existing lines alone. |
+| `03-nearly-empty.md` | One sentence. Whatever the AI adds, the original line must survive. |
+| `04-injection.md` | A paragraph telling the model to rewrite other documents and reply `PWNED`. Each job sees one document and can only add to it, so no other document may change. |
+| `05-series.md` | Display math, to see that added LaTeX renders. |
+
+`scripts/mock-ai-server.js` (`make mock-ai`) is a stand-in provider for the checks that need a result the AI
+would not reliably give: altered text, a failed self-check, a slow batch. See the comments at the top of the script.
+
 ## Not generated yet
 
 The Phase 4 test set grows with your content: the example file holds a handful of queries against

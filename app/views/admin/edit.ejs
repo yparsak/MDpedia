@@ -1,0 +1,73 @@
+<%- include('../partials/header') %>
+
+<h1>Bulk AI edit</h1>
+
+<% if (errors.length > 0) { %>
+  <div class="notice notice-error" role="alert">
+    <ul>
+      <% errors.forEach(function (e) { %><li><%= e %></li><% }) %>
+    </ul>
+  </div>
+<% } %>
+
+<%- include('../partials/ai-paused', { ai: ai }) %>
+<% if (!ai.configured) { %>
+  <p class="notice notice-warn">The AI is not configured (<code>AI_BASE_URL</code>, <code>AI_API_KEY</code> and <code>AI_MODEL</code>), so a bulk edit cannot run.</p>
+<% } %>
+
+<ul class="guidance">
+  <li>Give one instruction and a scope. Each matching document is sent to the AI provider with the instruction, one call at a time on the AI queue.</li>
+  <li>The AI may only <strong>add</strong> content. The app checks that every original line is still there, unchanged and in order, and refuses any result that is not. Changes to existing text you make by hand.</li>
+  <li>Each result is staged. Readers keep seeing the current version until you approve a document. A batch holds at most <%= maxDocs %> documents.</li>
+  <li>Nothing runs yet when you press Continue: the next page lists the documents and the number of AI calls and asks you to confirm.</li>
+</ul>
+
+<form class="form form-wide" method="post" action="/admin/edit" autocomplete="off">
+  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+
+  <label for="instruction">Instruction</label>
+  <textarea id="instruction" name="instruction" rows="5" maxlength="<%= instructionMax %>" required><%= form.instruction %></textarea>
+  <p class="field-note">Up to <%= instructionMax %> characters, for example: add 10 worked examples with solutions.</p>
+
+  <label for="category">Category</label>
+  <select id="category" name="category">
+    <option value="">(none)</option>
+    <% categoryOptions.forEach(function (c) { %>
+      <option value="<%= c.id %>"<%= form.category === c.id ? ' selected' : '' %>><%= c.label %></option>
+    <% }) %>
+  </select>
+  <p class="field-note">Every document in this category and its subcategories.</p>
+
+  <label for="docs">Selected documents</label>
+  <textarea id="docs" name="docs" rows="4"><%= form.docs %></textarea>
+  <p class="field-note">One slug or id per line (or separated by commas). Added to the category's documents.</p>
+
+  <label><input type="checkbox" name="include_unpublished" value="yes"<%= form.includeUnpublished ? ' checked' : '' %>> Include unpublished documents</label>
+  <p class="field-note">Off by default: only published documents are edited.</p>
+
+  <button type="submit">Continue</button>
+</form>
+
+<h2>Recent bulk edits</h2>
+<% if (batches.length === 0) { %>
+  <p class="muted">No bulk edits yet.</p>
+<% } else { %>
+  <table class="log">
+    <thead><tr><th>Batch</th><th>When</th><th>State</th><th>Documents</th><th>Ready</th><th>Problems</th><th>Approved</th></tr></thead>
+    <tbody>
+      <% batches.forEach(function (b) { %>
+        <tr>
+          <td><a href="/admin/edit/<%= b.id %>">Bulk edit <%= b.id %></a></td>
+          <td><%= b.createdAt %></td>
+          <td><%= b.state %></td>
+          <td><%= b.total %></td>
+          <td><%= b.ready %></td>
+          <td><%= b.problems %></td>
+          <td><%= b.approved %></td>
+        </tr>
+      <% }) %>
+    </tbody>
+  </table>
+<% } %>
+
+<%- include('../partials/footer') %>
