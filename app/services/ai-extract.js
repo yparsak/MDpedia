@@ -7,7 +7,8 @@
 // The AI replaces the doc's search terms. That is what "extraction" means; terms
 // an author put in the upload are overwritten, hand edits come after.
 
-import { DocFileError, readDocFile, updateDocFile } from './docfiles.js';
+import { DocFileError, readDocFile, readStagedFile, updateDocFile, writeStagedFile } from './docfiles.js';
+import { bodyHash, serializeFrontMatter } from './frontmatter.js';
 import { getDocById } from './docs.js';
 import { loadTree } from './categories.js';
 import { replaceSuggestions } from './ai-suggestions.js';
@@ -60,4 +61,53 @@ export async function extractForDoc(pool, config, provider, docId, { signal } = 
   const result = await provider.extractMetadata(documentText(doc.title, body), await loadTree(pool), { signal });
   await applyExtraction(pool, config, doc, result);
   return result;
+}
+
+// ---------------------------------------------------- staged replacement (Phase 8)
+
+// Writes an extraction result to a staged replacement, not to the live doc: keywords
+// (the four lists), the summary unless the live one was hand-edited, and the `ai:`
+// block, all in the staged file's front matter. Categories are never touched: the
+// approved ones carry over. The row only learns that the staged version is ready.
+// Resolves to false when the staged file changed or went away while the AI worked
+// (a newer replacement has its own job).
+async function applyStagedExtraction(pool, config, doc, hash, result) {
+  const { data, provider, model, promptVersion } = result;
+  let staged;
+  try {
+    staged = await readStagedFile(config, doc.id);
+  } catch (err) {
+    if (err.code === 'ENOENT') return false;
+    throw err;
+  }
+  if (bodyHash(staged.body) !== hash) return false;
+
+  const date = new Date().toISOString().slice(0, 10);
+  const frontMatter = {
+    ...staged.data,
+    ...termsToFrontMatter(data.terms),
+    ...(doc.summary_edited ? {} : { summary: data.summary, summary_edited: undefined }),
+    ai: { provider, model, prompt_version: promptVersion, date },
+  };
+  await writeStagedFile(config, doc.id, serializeFrontMatter(frontMatter, staged.body), hash);
+  await pool.query("UPDATE docs SET staged_status = 'ready' WHERE id = ? AND staged_hash = ?", [doc.id, hash]);
+  return true;
+}
+
+// The whole `replace` job: read the staged file, ask the model, store the answer in
+// the staged file. Resolves to false when there was nothing to do (no staged version
+// any more, or a newer one replaced it). Throws like extractForDoc.
+export async function extractForStaged(pool, config, provider, docId, { signal } = {}) {
+  const doc = await getDocById(pool, docId);
+  if (!doc) throw new DocFileError('The document no longer exists.');
+  if (!doc.staged_at) return false;
+  let staged;
+  try {
+    staged = await readStagedFile(config, docId);
+  } catch (err) {
+    if (err.code === 'ENOENT') return false;
+    throw err;
+  }
+  const result = await provider.extractMetadata(documentText(doc.title, staged.body), await loadTree(pool), { signal });
+  return applyStagedExtraction(pool, config, doc, bodyHash(staged.body), result);
 }

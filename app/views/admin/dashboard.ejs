@@ -31,6 +31,17 @@
     <p><a href="/admin/categories">Edit the category tree</a></p>
   </section>
   <section class="card">
+    <h2>Attention</h2>
+    <% if (attention.total === 0) { %>
+      <p>Nothing needs attention.</p>
+    <% } else { %>
+      <p><strong><%= attention.docs %></strong> document<%= attention.docs === 1 ? '' : 's' %> needing attention or missing</p>
+      <p><strong><%= attention.files %></strong> rejected file<%= attention.files === 1 ? '' : 's' %></p>
+    <% } %>
+    <p><strong><%= stagedCount %></strong> staged replacement<%= stagedCount === 1 ? '' : 's' %></p>
+    <p><a href="/admin/attention">Attention page</a></p>
+  </section>
+  <section class="card">
     <h2>Links</h2>
     <p><strong><%= unresolvedLinks %></strong> unresolved link<%= unresolvedLinks === 1 ? '' : 's' %></p>
     <p><a href="/admin/links">See the report</a></p>

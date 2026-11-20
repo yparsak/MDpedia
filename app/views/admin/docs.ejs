@@ -31,6 +31,7 @@
           <td>
             <a href="/admin/docs/<%= d.id %>"><%= d.title %></a>
             <% if (d.hasRawHtml) { %><span class="badge badge-warn">raw HTML</span><% } %>
+            <% if (d.attention) { %><a class="badge badge-warn" href="/admin/attention"><%= d.attention === 'missing' ? 'file missing' : 'needs attention' %></a><% } %>
           </td>
           <td>
             <code><%= d.slug %></code>

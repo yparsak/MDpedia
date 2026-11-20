@@ -74,8 +74,20 @@ CREATE TABLE IF NOT EXISTS docs (
   ai_at             DATETIME     NULL,
   approved_at       DATETIME     NULL,
   size_bytes        INT UNSIGNED NULL,
+  -- Reconciliation and replacement (Phase 8).
+  file_size         INT UNSIGNED    NULL,
+  file_mtime_ms     BIGINT UNSIGNED NULL,
+  attention         VARCHAR(20)     NULL,
+  attention_reason  VARCHAR(300)    NULL,
+  attention_at      DATETIME        NULL,
+  staged_at         DATETIME        NULL,
+  staged_status     VARCHAR(20)     NULL,
+  staged_hash       CHAR(64)        NULL,
+  staged_size       INT UNSIGNED    NULL,
   PRIMARY KEY (id),
   UNIQUE KEY uq_docs_slug (slug),
+  KEY idx_docs_attention (attention),
+  KEY idx_docs_staged (staged_at),
   KEY idx_docs_status (status),
   KEY idx_docs_published_title (published, title),
   FULLTEXT KEY ft_docs_plain_text (plain_text)
@@ -250,4 +262,28 @@ CREATE TABLE IF NOT EXISTS import_batch_items (
   CONSTRAINT fk_batch_items_doc FOREIGN KEY (doc_id) REFERENCES docs (id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-INSERT IGNORE INTO schema_migrations (version) VALUES ('000_schema_migrations'), ('001_admin'), ('002_documents'), ('003_categories'), ('004_search'), ('005_links'), ('006_ai'), ('007_review');
+-- Files the reconciliation scan refused (Phase 8).
+CREATE TABLE IF NOT EXISTS file_issues (
+  file_name   VARCHAR(255) NOT NULL,
+  -- duplicate-id, duplicate-slug, untracked, unreadable, bad-name
+  kind        VARCHAR(20)  NOT NULL,
+  doc_id      INT UNSIGNED NULL,
+  reason      VARCHAR(300) NOT NULL,
+  detected_at DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (file_name)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS reconcile_state (
+  id           TINYINT UNSIGNED NOT NULL,
+  last_run_at  DATETIME         NULL,
+  last_trigger VARCHAR(20)      NULL,
+  files_seen   INT UNSIGNED     NOT NULL DEFAULT 0,
+  files_read   INT UNSIGNED     NOT NULL DEFAULT 0,
+  docs_updated INT UNSIGNED     NOT NULL DEFAULT 0,
+  duration_ms  INT UNSIGNED     NOT NULL DEFAULT 0,
+  PRIMARY KEY (id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+INSERT IGNORE INTO reconcile_state (id) VALUES (1);
+
+INSERT IGNORE INTO schema_migrations (version) VALUES ('000_schema_migrations'), ('001_admin'), ('002_documents'), ('003_categories'), ('004_search'), ('005_links'), ('006_ai'), ('007_review'), ('008_replace');

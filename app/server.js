@@ -5,6 +5,7 @@ import { loadEnvFile, loadConfig, summarize } from './config.js';
 import { createPool } from './db.js';
 import { createApp } from './app.js';
 import { createWorker } from './services/ai-worker.js';
+import { createReconciler } from './services/reconcile.js';
 import { pruneSearchLog } from './services/search-log.js';
 import { runSelfCheck } from './services/selfcheck.js';
 import { log, errorFields } from './logger.js';
@@ -27,6 +28,7 @@ const { config } = result;
 const pool = createPool(config.db);
 const app = createApp({ config, pool });
 const worker = createWorker({ pool, config });
+const reconciler = createReconciler({ pool, config });
 
 console.log(`\nMDpedia ${version}`);
 for (const line of summarize(config)) console.log(`  ${line}`);
@@ -42,6 +44,8 @@ const server = app.listen(config.server.port, config.server.host, async () => {
   // After the self-check, so a database that is down or behind is reported first.
   // The worker does nothing unless the AI is configured.
   await worker.start();
+  // The file wins: edits made over SSH reach the database here, now and every RECONCILE_INTERVAL_MINUTES.
+  await reconciler.start();
 });
 
 // The search log keeps queries only for SEARCH_LOG_RETENTION_DAYS (brainstorm 5.1).
@@ -78,6 +82,7 @@ async function shutdown(signal) {
   server.close(async () => {
     try {
       // Aborts calls in flight and puts their jobs back before the pool closes.
+      reconciler.stop();
       await worker.stop();
       await pool.end();
     } catch (err) {

@@ -37,6 +37,13 @@
   <% if (doc.publishedAt) { %><tr><th scope="row">Published</th><td><%= doc.publishedAt %></td></tr><% } %>
 </table>
 
+<% if (doc.attention) { %>
+  <p class="notice notice-error" role="alert">
+    <strong><%= doc.attention === 'missing' ? 'The file is missing.' : 'The file needs attention.' %></strong>
+    <%= doc.attentionReason %> <a href="/admin/attention">Attention page</a>
+  </p>
+<% } %>
+
 <% if (doc.hasRawHtml) { %>
   <p class="notice notice-warn">
     This document contains raw HTML. It is not rendered: the markup appears on the page as plain text.
@@ -59,6 +66,19 @@
     <input type="hidden" name="_csrf" value="<%= csrfToken %>">
     <button type="submit" class="button"><%= doc.status === 'unpublished' ? 'Publish again' : 'Publish' %></button>
   </form>
+<% } %>
+
+<h2>Replace</h2>
+<% if (doc.stagedAt) { %>
+  <p>
+    A replacement was staged <%= doc.stagedAt %>
+    (<span class="badge badge-<%= doc.stagedStatus === 'ready' ? 'ready' : doc.stagedStatus === 'failed' ? 'failed' : 'processing' %>"><%= doc.stagedStatus %></span>).
+    Readers still see the current version.
+    <a href="/admin/replace/<%= doc.id %>">Review the staged version</a>
+  </p>
+<% } else { %>
+  <p><a class="button" href="/admin/replace/<%= doc.id %>">Replace this document</a></p>
+  <p class="field-note">Upload a new version. The current one stays live until you approve the new one.</p>
 <% } %>
 
 <% if (doc.ai || suggestions.categories.length > 0 || suggestions.proposals.length > 0) { %>

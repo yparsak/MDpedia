@@ -22,9 +22,10 @@ function docPath(config, slug) {
   return path.join(config.paths.docs, `${slug}.md`);
 }
 
-// Writes the text to staging and proves its body is the one expected.
-async function stage(config, slug, text, expectedHash) {
-  const tempPath = path.join(config.paths.staging, `${slug}.${crypto.randomBytes(6).toString('hex')}.tmp`);
+// Writes the text to staging and proves its body is the one expected. `name`
+// only names the temp file.
+async function stage(config, name, text, expectedHash) {
+  const tempPath = path.join(config.paths.staging, `${name}.${crypto.randomBytes(6).toString('hex')}.tmp`);
   try {
     await fs.writeFile(tempPath, text, { encoding: 'utf8', flag: 'wx', mode: 0o640 });
     const written = parseFrontMatter(await fs.readFile(tempPath, 'utf8'));
@@ -79,4 +80,97 @@ export async function updateDocFile(config, slug, mutate) {
     throw err;
   }
   return { data, body: parsed.body };
+}
+
+// ------------------------------------------------- staged replacements (Phase 8)
+
+// One staged version per doc, at STAGING_DIR/replace-<id>.md. The reconciliation
+// scan reads only the docs directory, so a staged file is never picked up as a doc.
+const STAGED_PATTERN = /^replace-(\d+)\.md$/;
+
+function stagedPath(config, docId) {
+  if (!Number.isInteger(docId) || docId <= 0) throw new DocFileError('Invalid document id.');
+  return path.join(config.paths.staging, `replace-${docId}.md`);
+}
+
+// Writes (or overwrites: one staged version per doc) the staged file, atomically.
+export async function writeStagedFile(config, docId, text, expectedHash) {
+  const target = stagedPath(config, docId);
+  const tempPath = await stage(config, `replace-${docId}`, text, expectedHash);
+  try {
+    await fs.rename(tempPath, target);
+  } catch (err) {
+    await fs.rm(tempPath, { force: true });
+    throw err;
+  }
+}
+
+// Resolves to { data, body }. Throws ENOENT if there is no staged file and DocFileError if it cannot be parsed.
+export async function readStagedFile(config, docId) {
+  const parsed = parseFrontMatter(await fs.readFile(stagedPath(config, docId), 'utf8'));
+  if (!parsed.ok) throw new DocFileError(`The staged file cannot be read. ${parsed.error}`);
+  return { data: parsed.data, body: parsed.body };
+}
+
+export async function removeStagedFile(config, docId) {
+  await fs.rm(stagedPath(config, docId), { force: true });
+}
+
+// The swap (brainstorm 5.10): the new text is written to staging and checked, then
+// renamed over the live file, so a reader of the file sees the old version or the new one.
+export async function swapIntoPlace(config, slug, text, expectedHash) {
+  const target = docPath(config, slug);
+  const tempPath = await stage(config, slug, text, expectedHash);
+  try {
+    await fs.rename(tempPath, target);
+  } catch (err) {
+    await fs.rm(tempPath, { force: true });
+    throw err;
+  }
+}
+
+// Removes what nobody will claim: staged files whose doc has no staged version
+// (keepIds holds the ids that do) and temp files left by a crash over a day ago.
+// Resolves to how many files were removed.
+export async function cleanStagingDir(config, keepIds) {
+  let removed = 0;
+  for (const entry of await fs.readdir(config.paths.staging, { withFileTypes: true })) {
+    if (!entry.isFile()) continue;
+    const match = STAGED_PATTERN.exec(entry.name);
+    const full = path.join(config.paths.staging, entry.name);
+    const orphanStaged = match !== null && !keepIds.has(Number(match[1]));
+    const staleTemp = match === null && entry.name.endsWith('.tmp') && Date.now() - (await fs.stat(full)).mtimeMs > 24 * 60 * 60 * 1000;
+    if (!orphanStaged && !staleTemp) continue;
+    await fs.rm(full, { force: true });
+    removed += 1;
+  }
+  return removed;
+}
+
+// ------------------------------------------------- reconciliation (Phase 8)
+
+// Every `*.md` file in the docs directory with its size and modified time.
+// slug is the file name without `.md`; it is not checked here.
+export async function listDocFiles(config) {
+  const files = [];
+  for (const entry of await fs.readdir(config.paths.docs, { withFileTypes: true })) {
+    if (!entry.isFile() || !entry.name.toLowerCase().endsWith('.md')) continue;
+    const stat = await fs.stat(path.join(config.paths.docs, entry.name));
+    files.push({ fileName: entry.name, slug: entry.name.slice(0, -3), size: stat.size, mtimeMs: Math.floor(stat.mtimeMs) });
+  }
+  return files;
+}
+
+// The text of a file found by listDocFiles (the name came from the directory listing, not from a request).
+export const readDocFileText = (config, fileName) => fs.readFile(path.join(config.paths.docs, path.basename(fileName)), 'utf8');
+
+// { size, mtimeMs } of a doc's file, or null when it is not there.
+export async function statDocFile(config, slug) {
+  try {
+    const stat = await fs.stat(docPath(config, slug));
+    return { size: stat.size, mtimeMs: Math.floor(stat.mtimeMs) };
+  } catch (err) {
+    if (err.code === 'ENOENT') return null;
+    throw err;
+  }
 }

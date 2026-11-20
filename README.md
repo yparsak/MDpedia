@@ -7,7 +7,7 @@ A Markdown wiki for a Raspberry Pi: math rendering, keyword search, and AI-assis
 - `db/README.md`: the SQL workflow.
 - `samples/README.md`: the test fixtures.
 
-## Quick start (through Phase 7)
+## Quick start (through Phase 8)
 
 ```bash
 cp .env.example .env     # fill in DB_PASSWORD and SESSION_SECRET (openssl rand -hex 32)
@@ -16,7 +16,7 @@ mkdir -p /srv/MDpedia-data/docs /srv/MDpedia-data/staging   # your DOCS_DIR and 
 make env-check
 make install
 make migrate-status
-make migrate      # applies 000 to 007 (takes a dump first)
+make migrate      # applies 000 to 008 (takes a dump first)
 make admin        # creates the admin; also resets the password
 make start
 ```
@@ -78,6 +78,16 @@ Then open `http://<pi-address>:3000/admin` and log in.
   of AI calls (granting a one-time allowance above `AI_DAILY_CAP` if needed), then imports them with `-2`
   style suffixes for taken slugs. A file that fails (oversize, bad encoding, bad front matter) is skipped and
   listed in the import report, which also shows each document's slug and exceptions.
+- Replace: a document's page has "Replace this document" (`/admin/replace/<id>`). The upload is staged in
+  `STAGING_DIR` as `replace-<id>.md` and must have no `id`/`slug` in its front matter, or the same ones. Readers
+  keep seeing the old version while the AI refreshes the keywords (categories carry over; a hand-edited summary
+  is kept). Approving swaps the file into place and updates the database in one transaction. A staged version
+  nobody approves is removed after `STAGED_RETENTION_DAYS`.
+- Reconciliation: the files win. At startup and every `RECONCILE_INTERVAL_MINUTES` (and on "Rescan now") the
+  docs directory is compared with the database by size and modified time, then body hash. Invalid front
+  matter, a changed `id` or `slug`, or a missing file marks the document on `/admin/attention` while readers keep
+  the last good version; a second file claiming an existing `id` or `slug` is rejected and listed there.
+  A scan applies body, title, summary and search terms; `published` and `categories` stay under app control.
 - `/admin/status` is the Phase 0 status page (it was `/` before Phase 2). `/healthz` is unchanged.
 - Each document is stored as `<slug>.md` in `DOCS_DIR`, with `id`, `slug`, `title`,
   `published`, `categories` (ids) and, when set, `keywords`, `key_phrases`, `synonyms` and `questions` in its front matter. The file is canonical; the database is an index.

@@ -24,13 +24,14 @@ export const STATUS_LABELS = {
 };
 
 const LIST_COLUMNS =
-  'id, slug, title, status, published, summary, summary_edited, has_raw_html, size_bytes, created_at, updated_at, published_at';
+  'id, slug, title, status, published, summary, summary_edited, has_raw_html, size_bytes, attention, created_at, updated_at, published_at';
 
 // ------------------------------------------------------------------ reading
 
 export async function getDocById(pool, id) {
   const [rows] = await pool.query(
-    `SELECT ${LIST_COLUMNS}, body_hash, html, ai_provider, ai_model, ai_prompt_version, ai_at FROM docs WHERE id = ?`,
+    `SELECT ${LIST_COLUMNS}, body_hash, html, ai_provider, ai_model, ai_prompt_version, ai_at,
+            attention_reason, staged_at, staged_status, staged_hash, staged_size FROM docs WHERE id = ?`,
     [id],
   );
   return rows[0] ?? null;

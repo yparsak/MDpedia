@@ -6,16 +6,20 @@ import { recordAudit, listAudit } from '../services/audit.js';
 import { categoryStats } from '../services/categories.js';
 import { countByStatus } from '../services/docs.js';
 import { noticeFrom } from '../services/notices.js';
+import { countAttention } from '../services/reconcile.js';
 import { countPendingProposals } from '../services/review.js';
+import { listStaged } from '../services/replace.js';
 import { pageCount, parsePage } from '../services/pagination.js';
 import { getStatus } from '../services/status.js';
 import { countUnresolved } from '../services/wiki-links.js';
 import { aiOverview } from '../services/ai-status.js';
 import { adminAiRouter } from './admin-ai.js';
+import { adminAttentionRouter } from './admin-attention.js';
 import { adminJobsRouter } from './admin-jobs.js';
 import { adminCategoriesRouter } from './admin-categories.js';
 import { adminDocsRouter } from './admin-docs.js';
 import { adminImportRouter } from './admin-import.js';
+import { adminReplaceRouter } from './admin-replace.js';
 import { adminReviewRouter } from './admin-review.js';
 import { adminLinksRouter } from './admin-links.js';
 import { adminSearchRouter } from './admin-search.js';
@@ -153,6 +157,8 @@ export function adminRouter({ pool, config, version }) {
       categoryCounts,
       unresolvedLinks: await countUnresolved(pool),
       pendingProposals: await countPendingProposals(pool),
+      attention: await countAttention(pool),
+      stagedCount: (await listStaged(pool)).length,
       ai: await aiOverview(pool, config),
       sessionExpires: req.session.expiresAt,
       idleMinutes: config.session.idleMinutes,
@@ -203,6 +209,8 @@ export function adminRouter({ pool, config, version }) {
   // -------------------------------------------------------------- documents
 
   router.use('/docs', adminDocsRouter({ pool, config, needAdmin }));
+  router.use('/replace', adminReplaceRouter({ pool, config, needAdmin }));
+  router.use('/attention', adminAttentionRouter({ pool, config, needAdmin }));
 
   // ---------------------------------------------------------- review, import
 

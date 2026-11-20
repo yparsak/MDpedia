@@ -223,3 +223,6 @@ code { background: #f2f4f5; padding: 0.1em 0.35em; border-radius: 3px; }
 .proposal { border: 1px solid var(--line); border-radius: 6px; padding: 0.25rem 1rem 0.75rem; margin: 0.5rem 0; display: grid; gap: 0.35rem; }
 .proposal legend { font-weight: 600; padding: 0 0.4rem; }
 .proposal p { margin: 0.25rem 0; }
+
+/* Phase 8: keyword lists side by side on the replace page */
+.plain-list { margin: 0; white-space: pre-wrap; font: inherit; }

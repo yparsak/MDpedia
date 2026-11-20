@@ -1,0 +1,112 @@
+<%- include('../partials/header') %>
+
+<h1>Replace: <%= doc.title %></h1>
+
+<% if (notice) { %>
+  <p class="notice notice-<%= notice.kind === 'ok' ? 'ok' : 'warn' %>"><%= notice.text %></p>
+<% } %>
+<% if (errors.length > 0) { %>
+  <div class="notice notice-error" role="alert">
+    <ul>
+      <% errors.forEach(function (e) { %><li><%= e %></li><% }) %>
+    </ul>
+  </div>
+<% } %>
+
+<p>
+  <a href="/admin/docs/<%= doc.id %>">Back to the document</a>.
+  Slug <code><%= doc.slug %></code>, <%= doc.published ? 'published' : 'not published' %> (<%= doc.statusLabel %>).
+  Readers see the current version until you approve a replacement.
+</p>
+
+<% if (doc.missing) { %>
+  <p class="notice notice-warn">The live file is missing from the docs directory, so it cannot be replaced until it is restored.</p>
+<% } %>
+<% if (doc.inProgress) { %>
+  <p class="notice notice-warn">The AI is still working on this document. Replace it once it is ready for review.</p>
+<% } %>
+
+<% if (staged) { %>
+  <h2>Staged version</h2>
+  <table class="facts">
+    <tr><th scope="row">Staged</th><td><%= staged.at %>, <%= staged.size %> bytes</td></tr>
+    <tr><th scope="row">Status</th><td><span class="badge badge-<%= staged.status === 'ready' ? 'ready' : staged.status === 'failed' ? 'failed' : 'processing' %>"><%= staged.statusLabel %></span></td></tr>
+  </table>
+
+  <% if (staged.problem) { %>
+    <p class="notice notice-error" role="alert"><%= staged.problem %></p>
+  <% } %>
+  <% if (staged.status === 'processing') { %>
+    <p class="notice notice-warn">The AI is refreshing the keywords (and the summary, unless you edited it by hand). Reload this page in a moment. The <a href="/admin/jobs">Jobs page</a> shows progress.</p>
+  <% } else if (staged.status === 'failed') { %>
+    <p class="notice notice-warn">The keyword refresh failed (see the <a href="/admin/jobs?status=failed">failed jobs</a>). You can retry it there, or approve now: the current keywords and summary carry over unchanged.</p>
+  <% } %>
+  <% if (staged.hasRawHtml) { %>
+    <p class="notice notice-warn">The new version contains raw HTML. It is not rendered: the markup appears as plain text.</p>
+  <% } %>
+
+  <% if (staged.terms) { %>
+    <h3>Keywords: current and after the swap</h3>
+    <p class="field-note">
+      Categories are not changed. The summary is
+      <% if (doc.summaryEdited) { %>kept, because you edited it by hand.<% } else { %>replaced by the one below.<% } %>
+    </p>
+    <table class="log">
+      <thead><tr><th></th><th>Current</th><th>New</th></tr></thead>
+      <tbody>
+        <tr>
+          <th scope="row">Summary</th>
+          <td><%= doc.summary %></td>
+          <td><%= doc.summaryEdited ? doc.summary : staged.summary %></td>
+        </tr>
+        <% termLists.forEach(function (t) { %>
+          <tr>
+            <th scope="row"><%= t.label.charAt(0).toUpperCase() + t.label.slice(1) %>s</th>
+            <td><pre class="plain-list"><%= currentTerms[t.list] %></pre></td>
+            <td><pre class="plain-list"><%= staged.terms[t.list] %></pre></td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  <% } %>
+
+  <% if (staged.canApprove && !doc.missing) { %>
+    <form class="inline-form" method="post" action="/admin/replace/<%= doc.id %>/approve">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <input type="hidden" name="staged_hash" value="<%= staged.hash %>">
+      <button type="submit" class="button">Approve and swap</button>
+    </form>
+  <% } %>
+  <form class="inline-form" method="post" action="/admin/replace/<%= doc.id %>/discard">
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <button type="submit" class="button">Discard the staged version</button>
+  </form>
+
+  <% if (staged.html) { %>
+    <h3>Preview of the new version</h3>
+    <div class="doc-body doc-preview">
+      <%- staged.html %>
+    </div>
+  <% } %>
+
+  <h2>Stage a different file</h2>
+  <p class="field-note">Only one staged version is kept per document: uploading again replaces the staged one.</p>
+<% } else { %>
+  <h2>Upload the new version</h2>
+<% } %>
+
+<% if (!doc.inProgress && !doc.missing) { %>
+  <ul class="guidance">
+    <li>One Markdown file ending in <code>.md</code>, UTF-8 text, up to <%= maxBytes %> bytes.</li>
+    <li>If the file has front matter, its <code>id</code> or <code>slug</code> must match this document, or be left out. Anything else in the front matter is ignored: the app keeps the document's front matter.</li>
+    <li>The document text is sent to the AI provider to refresh the keywords when the AI is configured.</li>
+  </ul>
+  <form class="form" method="post" action="/admin/replace/<%= doc.id %>" enctype="multipart/form-data" autocomplete="off">
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <label for="file">Markdown file</label>
+    <input id="file" name="file" type="file" accept=".md,text/markdown" required>
+    <button type="submit">Stage the replacement</button>
+  </form>
+<% } %>
+
+<%- include('../partials/footer') %>

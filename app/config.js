@@ -90,6 +90,7 @@ const schema = z.object({
   JOB_POLL_INTERVAL_SECONDS: int('5', 1, 3600),
   RECONCILE_INTERVAL_MINUTES: int('15', 1, 1440),
   JOB_RETENTION_DAYS: int('30', 1, 3650),
+  STAGED_RETENTION_DAYS: int('7', 0, 3650),
 
   RATE_LOGIN_FAILS_PER_15MIN: int('5', 1, 1000),
   RATE_SEARCH_PER_MIN: int('30', 1, 10000),
@@ -177,6 +178,7 @@ export function loadConfig(env = process.env) {
         pollIntervalSeconds: v.JOB_POLL_INTERVAL_SECONDS,
         reconcileIntervalMinutes: v.RECONCILE_INTERVAL_MINUTES,
         jobRetentionDays: v.JOB_RETENTION_DAYS,
+        stagedRetentionDays: v.STAGED_RETENTION_DAYS,
       },
       rate: {
         loginFailsPer15Min: v.RATE_LOGIN_FAILS_PER_15MIN,

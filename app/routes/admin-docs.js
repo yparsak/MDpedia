@@ -35,6 +35,7 @@ const NOTICES = {
   'summary-cleared': { kind: 'ok', text: 'Summary cleared.' },
   'categories-saved': { kind: 'ok', text: 'Categories saved. The first one is the primary category.' },
   'keywords-saved': { kind: 'ok', text: 'Search keywords saved. Searches find them straight away.' },
+  replaced: { kind: 'ok', text: 'Replaced. Readers see the new version now; categories were kept and the keywords refreshed.' },
   unchanged: { kind: 'warn', text: 'Nothing changed.' },
 };
 
@@ -341,6 +342,10 @@ function docView(d) {
     updatedAt: d.updated_at,
     publishedAt: d.published_at ?? '',
     inProgress: IN_PROGRESS.includes(d.status),
+    attention: d.attention ?? '',
+    attentionReason: d.attention_reason ?? '',
+    stagedAt: d.staged_at ?? '',
+    stagedStatus: d.staged_status ?? '',
     ai: d.ai_at ? { provider: d.ai_provider, model: d.ai_model, promptVersion: d.ai_prompt_version, at: d.ai_at } : null,
     html: d.html ?? '',
   };

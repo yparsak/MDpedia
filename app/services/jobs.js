@@ -17,7 +17,7 @@ export async function enqueueJob(conn, docId, type = 'ingest') {
   await conn.query('INSERT INTO jobs (doc_id, type) VALUES (?, ?)', [docId, type]);
 }
 
-// Takes the oldest job that is due, or resolves to null. Resolves to { id, docId, attempts }.
+// Takes the oldest job that is due, or resolves to null. Resolves to { id, docId, type, attempts }.
 export async function claimNext(pool) {
   const [candidates] = await pool.query("SELECT id FROM jobs WHERE status = 'queued' AND run_after <= NOW() ORDER BY id LIMIT 1");
   if (candidates.length === 0) return null;
@@ -26,8 +26,8 @@ export async function claimNext(pool) {
     [candidates[0].id],
   );
   if (result.affectedRows === 0) return null;
-  const [rows] = await pool.query('SELECT id, doc_id, attempts FROM jobs WHERE id = ?', [candidates[0].id]);
-  return { id: rows[0].id, docId: rows[0].doc_id, attempts: rows[0].attempts };
+  const [rows] = await pool.query('SELECT id, doc_id, type, attempts FROM jobs WHERE id = ?', [candidates[0].id]);
+  return { id: rows[0].id, docId: rows[0].doc_id, type: rows[0].type, attempts: rows[0].attempts };
 }
 
 export async function markDone(pool, jobId) {
@@ -62,10 +62,12 @@ export async function release(pool, jobId, message = null) {
 // run already counted as an attempt, so one that has used them all is failed.
 // Resolves to { requeued, failed }.
 export async function recoverRunning(pool, maxAttempts) {
-  const [exhausted] = await pool.query("SELECT id, doc_id FROM jobs WHERE status = 'running' AND attempts >= ?", [maxAttempts]);
-  for (const { id, doc_id: docId } of exhausted) {
+  const [exhausted] = await pool.query("SELECT id, doc_id, type FROM jobs WHERE status = 'running' AND attempts >= ?", [maxAttempts]);
+  for (const { id, doc_id: docId, type } of exhausted) {
     await markFailed(pool, id, 'The app restarted during every attempt.');
-    await pool.query("UPDATE docs SET status = 'failed' WHERE id = ? AND status = 'processing'", [docId]);
+    // A replace job's doc stays live; only its staged version failed.
+    if (type === 'replace') await pool.query("UPDATE docs SET staged_status = 'failed' WHERE id = ? AND staged_status = 'processing'", [docId]);
+    else await pool.query("UPDATE docs SET status = 'failed' WHERE id = ? AND status = 'processing'", [docId]);
   }
   const [requeued] = await pool.query("UPDATE jobs SET status = 'queued', locked_at = NULL WHERE status = 'running'");
   return { requeued: requeued.affectedRows, failed: exhausted.length };
@@ -89,7 +91,8 @@ export async function retryJob(pool, jobId) {
     [jobId],
   );
   if (result.affectedRows === 0) return false;
-  await pool.query("UPDATE docs d JOIN jobs j ON j.doc_id = d.id SET d.status = 'uploaded' WHERE j.id = ? AND d.status = 'failed'", [jobId]);
+  await pool.query("UPDATE docs d JOIN jobs j ON j.doc_id = d.id SET d.status = 'uploaded' WHERE j.id = ? AND j.type = 'ingest' AND d.status = 'failed'", [jobId]);
+  await pool.query("UPDATE docs d JOIN jobs j ON j.doc_id = d.id SET d.staged_status = 'processing' WHERE j.id = ? AND j.type = 'replace' AND d.staged_status = 'failed'", [jobId]);
   return true;
 }
 

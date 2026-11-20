@@ -1,0 +1,95 @@
+<%- include('../partials/header') %>
+
+<h1>Attention</h1>
+
+<% if (notice) { %>
+  <p class="notice notice-<%= notice.kind === 'ok' ? 'ok' : 'warn' %>"><%= notice.text %></p>
+<% } %>
+
+<p class="muted">
+  The files in the docs directory are the source of truth, so a file edited over SSH is picked up by a scan.
+  When a file cannot be used, the document keeps its last good state and readers keep seeing it.
+</p>
+
+<h2>Scan</h2>
+<table class="facts">
+  <tr><th scope="row">Last scan</th><td><% if (scan.lastRunAt) { %><%= scan.lastRunAt %> (server time), <%= scan.lastTrigger %>, <%= scan.durationMs %> ms<% } else { %><span class="muted">has not run yet</span><% } %></td></tr>
+  <tr><th scope="row">Last result</th><td><%= scan.filesSeen %> files, <%= scan.filesRead %> read, <%= scan.docsUpdated %> document<%= scan.docsUpdated === 1 ? '' : 's' %> updated</td></tr>
+  <tr><th scope="row">Schedule</th><td>At startup and every <%= intervalMinutes %> minutes. The staging directory is not scanned.</td></tr>
+</table>
+<form class="inline-form" method="post" action="/admin/attention/rescan">
+  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+  <button type="submit" class="button">Rescan now</button>
+</form>
+
+<h2>Documents needing attention</h2>
+<% if (docs.length === 0) { %>
+  <p class="notice notice-ok">Every document matches its file.</p>
+<% } else { %>
+  <table class="log">
+    <thead><tr><th>Document</th><th>State</th><th>Reason</th><th>Since</th></tr></thead>
+    <tbody>
+      <% docs.forEach(function (d) { %>
+        <tr>
+          <td>
+            <a href="/admin/docs/<%= d.id %>"><%= d.title %></a><br>
+            <code><%= d.slug %>.md</code>
+            <span class="muted"><%= d.published ? 'published, readers see the last good version' : 'not published' %></span>
+          </td>
+          <td><span class="badge badge-<%= d.kind === 'missing' ? 'failed' : 'warn' %>"><%= d.label %></span></td>
+          <td><%= d.reason %></td>
+          <td><%= d.since %></td>
+        </tr>
+      <% }) %>
+    </tbody>
+  </table>
+  <p class="field-note">Fix the file (or put it back) and rescan. The state clears by itself when the file is good again.</p>
+<% } %>
+
+<h2>Rejected files</h2>
+<% if (files.length === 0) { %>
+  <p class="notice notice-ok">No unexpected files in the docs directory.</p>
+<% } else { %>
+  <table class="log">
+    <thead><tr><th>File</th><th>Why</th><th>Since</th></tr></thead>
+    <tbody>
+      <% files.forEach(function (f) { %>
+        <tr>
+          <td><code><%= f.name %></code></td>
+          <td>
+            <span class="badge badge-warn"><%= f.kind %></span>
+            <%= f.reason %>
+            <% if (f.docId) { %><a href="/admin/docs/<%= f.docId %>">The original document</a><% } %>
+          </td>
+          <td><%= f.since %></td>
+        </tr>
+      <% }) %>
+    </tbody>
+  </table>
+  <p class="field-note">These files are ignored and never change a document. Remove or fix them over SSH; the entry clears on the next scan.</p>
+<% } %>
+
+<h2>Staged replacements</h2>
+<% if (staged.length === 0) { %>
+  <p class="muted">No document has a staged replacement.</p>
+<% } else { %>
+  <table class="log">
+    <thead><tr><th>Document</th><th>Status</th><th>Staged</th></tr></thead>
+    <tbody>
+      <% staged.forEach(function (d) { %>
+        <tr>
+          <td><a href="/admin/replace/<%= d.id %>"><%= d.title %></a> <code><%= d.slug %></code></td>
+          <td><%= d.statusLabel %></td>
+          <td><%= d.at %></td>
+        </tr>
+      <% }) %>
+    </tbody>
+  </table>
+<% } %>
+<p class="field-note">A staged version nobody approves is removed after <%= stagedRetentionDays %> day<%= stagedRetentionDays === 1 ? '' : 's' %>, by every scan.</p>
+<form class="inline-form" method="post" action="/admin/attention/cleanup">
+  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+  <button type="submit" class="button">Clean up abandoned staged versions</button>
+</form>
+
+<%- include('../partials/footer') %>

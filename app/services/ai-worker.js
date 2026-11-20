@@ -15,7 +15,7 @@ import { recordAudit } from './audit.js';
 import { aiConfigured } from '../config.js';
 import { AiAborted, AiError } from './ai-provider.js';
 import { getCircuit, recordFailure, recordSuccess } from './ai-circuit.js';
-import { extractForDoc } from './ai-extract.js';
+import { extractForDoc, extractForStaged } from './ai-extract.js';
 import { AiCapReached, cappedProvider, getUsage } from './ai-usage.js';
 import { DocFileError } from './docfiles.js';
 import { claimNext, markDone, markFailed, pruneJobs, recoverRunning, release, requeue } from './jobs.js';
@@ -69,13 +69,20 @@ export function createWorker({ pool, config }) {
       return;
     }
     await markFailed(pool, job.id, job.attempts > 1 ? `Failed after ${job.attempts} attempts. ${failure}` : failure);
+    // A replace job leaves the live doc alone; only its staged version failed.
+    if (job.type === 'replace') {
+      await pool.query("UPDATE docs SET staged_status = 'failed' WHERE id = ? AND staged_status = 'processing'", [job.docId]);
+      return;
+    }
     await setDocStatus(job.docId, 'failed', ['uploaded', 'processing']);
   }
 
   async function runJob(job) {
-    await setDocStatus(job.docId, 'processing', ['uploaded']);
+    const replacing = job.type === 'replace';
+    if (!replacing) await setDocStatus(job.docId, 'processing', ['uploaded']);
     try {
-      await extractForDoc(pool, config, provider, job.docId, { signal: shutdown.signal });
+      if (replacing) await extractForStaged(pool, config, provider, job.docId, { signal: shutdown.signal });
+      else await extractForDoc(pool, config, provider, job.docId, { signal: shutdown.signal });
       await markDone(pool, job.id);
       await recordSuccess(pool);
     } catch (err) {
