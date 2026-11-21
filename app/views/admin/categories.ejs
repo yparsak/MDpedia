@@ -15,29 +15,19 @@
 
 <p class="muted">At most three levels. A category can be deleted only when it has no subcategories and no documents, whatever their state.</p>
 
-<% if (rows.length === 0) { %>
+<%- include('../partials/backup-age') %>
+
+<% if (empty) { %>
   <p>No categories yet. Add the first one below, or seed a starting tree with <code>make seed-categories</code>.</p>
 <% } else { %>
-  <table class="log">
-    <thead><tr><th>Category</th><th>Slug</th><th>Docs</th><th>Order</th><th></th></tr></thead>
-    <tbody>
-      <% rows.forEach(function (c) { %>
-        <tr>
-          <td class="tree-depth-<%= c.depth %>"><a href="/admin/categories/<%= c.id %>"><%= c.name %></a></td>
-          <td><code><%= c.path %></code></td>
-          <td><%= c.docCount %></td>
-          <td>
-            <form class="inline-form" method="post" action="/admin/categories/<%= c.id %>/reorder">
-              <input type="hidden" name="_csrf" value="<%= csrfToken %>">
-              <% if (c.canUp) { %><button type="submit" name="direction" value="up" class="link-button">Up</button><% } %>
-              <% if (c.canDown) { %><button type="submit" name="direction" value="down" class="link-button">Down</button><% } %>
-            </form>
-          </td>
-          <td><a href="/admin/categories/<%= c.id %>">Edit</a></td>
-        </tr>
-      <% }) %>
-    </tbody>
-  </table>
+  <p class="muted">Use Up and Down, or drag a row by its handle (when JavaScript is on) to reorder it among its siblings.</p>
+  <ul class="cat-tree" data-sortable>
+    <% roots.forEach(function (root) { %><%- include('../partials/category-node', { c: root }) %><% }) %>
+  </ul>
+  <form id="place-form" method="post" hidden>
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <input type="hidden" name="position" value="">
+  </form>
 <% } %>
 
 <h2>Add a category</h2>

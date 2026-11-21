@@ -245,6 +245,29 @@ export async function reorderCategory(pool, id, direction) {
   if (to < 0 || to >= siblings.length) return { ok: true, changed: false };
   [siblings[from], siblings[to]] = [siblings[to], siblings[from]];
 
+  await saveSiblingOrder(pool, siblings);
+  return { ok: true, changed: true };
+}
+
+// Drag and drop: position is the 1-based place the category takes among its siblings.
+export async function placeCategory(pool, id, position) {
+  const tree = await loadTree(pool);
+  const node = tree.byId.get(id);
+  if (!node) return fail('The category does not exist.');
+
+  const siblings = [...siblingsOf(tree, node.parent)];
+  if (!Number.isInteger(position) || position < 1 || position > siblings.length) return fail('That position is not valid.');
+  const from = siblings.findIndex((s) => s.id === id);
+  if (position - 1 === from) return { ok: true, changed: false };
+  siblings.splice(from, 1);
+  siblings.splice(position - 1, 0, node);
+
+  await saveSiblingOrder(pool, siblings);
+  return { ok: true, changed: true };
+}
+
+// Renumbers the siblings 1..n in the given order, in one transaction.
+async function saveSiblingOrder(pool, siblings) {
   const conn = await pool.getConnection();
   try {
     await conn.beginTransaction();
@@ -258,7 +281,6 @@ export async function reorderCategory(pool, id, direction) {
   } finally {
     conn.release();
   }
-  return { ok: true, changed: true };
 }
 
 // Only an empty category can go: no subcategories and no docs in any state

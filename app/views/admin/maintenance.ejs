@@ -1,0 +1,47 @@
+<%- include('../partials/header') %>
+
+<h1>Maintenance</h1>
+
+<% if (notice) { %>
+  <p class="notice notice-<%= notice.kind === 'ok' ? 'ok' : 'warn' %>"><%= notice.text %></p>
+<% } %>
+
+<h2>Backup</h2>
+<%- include('../partials/backup-age') %>
+<% if (backup.known) { %>
+  <table class="facts">
+    <tr><th scope="row">Last successful backup</th><td><%= backup.lastSuccessAt %></td></tr>
+    <% if (backup.target) { %><tr><th scope="row">Written to</th><td><code><%= backup.target %></code></td></tr><% } %>
+    <% if (backup.docsCount !== null) { %><tr><th scope="row">Documents copied</th><td><%= backup.docsCount %></td></tr><% } %>
+    <% if (backup.dumpBytes !== null) { %><tr><th scope="row">Database dump</th><td><%= backup.dumpBytes %> bytes</td></tr><% } %>
+  </table>
+<% } %>
+<p class="muted">Backups are taken from the shell, with the drive plugged in: <code>make backup</code>. See <code>docs/OPERATIONS.md</code>.</p>
+
+<h2>Pruning</h2>
+<p class="muted">These run when the app starts and every six hours. Run them now if you want to see the counts.</p>
+<table class="log">
+  <thead><tr><th>Task</th><th>What it removes</th><th>Last run</th><th>Result</th><th>Rows removed</th></tr></thead>
+  <tbody>
+    <% tasks.forEach(function (t) { %>
+      <tr>
+        <td><%= t.label %></td>
+        <td><%= t.rule %></td>
+        <% if (t.last) { %>
+          <td><%= t.last.startedAt %> <span class="muted">(<%= t.last.trigger === 'manual' ? 'by hand' : 'scheduled' %>)</span></td>
+          <td><% if (t.last.status === 'ok') { %>ok<% } else { %><span class="error-text"><%= t.last.message %></span><% } %></td>
+          <td><%= t.last.pruned %></td>
+        <% } else { %>
+          <td class="muted">never</td><td></td><td></td>
+        <% } %>
+      </tr>
+    <% }) %>
+  </tbody>
+</table>
+
+<form class="inline-form" method="post" action="/admin/maintenance/run">
+  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+  <button type="submit" class="button">Run maintenance now</button>
+</form>
+
+<%- include('../partials/footer') %>

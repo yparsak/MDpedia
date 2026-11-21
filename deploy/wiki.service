@@ -1,0 +1,63 @@
+# systemd unit for MDpedia (roadmap Phase 10, brainstorm 5.17).
+#
+# Install (as root, on the Pi). Edit the three paths below first if yours differ:
+#   - WorkingDirectory: where the app is checked out
+#   - ExecStart:        the node binary (`command -v node`) and app/server.js
+#   - ReadWritePaths:   the directory DATA_DIR/DOCS_DIR/STAGING_DIR live under
+#
+#   sudo useradd --system --home /srv/MDpedia --shell /usr/sbin/nologin MDpedia   # once
+#   sudo chown -R MDpedia:MDpedia /srv/MDpedia-data
+#   sudo install -m 644 deploy/wiki.service /etc/systemd/system/wiki.service
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now wiki
+#   systemctl status wiki ; journalctl -u wiki -f
+#
+# The app reads its settings from .env with dotenv, in WorkingDirectory
+# (chmod 600, owned by the MDpedia user). systemd does not read it.
+
+[Unit]
+Description=MDpedia wiki
+# MariaDB is a separate service on this Pi. The app also survives a database that
+# starts late or restarts: its connection pool reconnects by itself.
+After=network-online.target mariadb.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=MDpedia
+Group=MDpedia
+WorkingDirectory=/srv/MDpedia/app-current
+ExecStart=/usr/bin/node app/server.js
+Environment=NODE_ENV=production
+
+# Come back after a crash or a kill, but not in a tight loop if something is badly wrong.
+Restart=on-failure
+RestartSec=5
+StartLimitIntervalSec=300
+StartLimitBurst=10
+
+# Stops cleanly on SIGTERM: the app finishes or releases the AI job in flight.
+KillSignal=SIGTERM
+TimeoutStopSec=15
+
+# Hardening. The service can write only under the data directory (docs, staging,
+# categories.yaml, last-backup.txt). The app code and .env are read-only to it.
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/srv/MDpedia-data
+PrivateDevices=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+RestrictRealtime=true
+RestrictNamespaces=true
+LockPersonality=true
+SystemCallArchitectures=native
+CapabilityBoundingSet=
+AmbientCapabilities=
+
+[Install]
+WantedBy=multi-user.target

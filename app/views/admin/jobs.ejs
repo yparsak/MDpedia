@@ -27,6 +27,7 @@
 </div>
 
 <% if (ai.jobs.failed > 0) { %>
+  <%- include('../partials/backup-age') %>
   <form class="inline-form" method="post" action="/admin/jobs/retry-all">
     <input type="hidden" name="_csrf" value="<%= csrfToken %>">
     <button type="submit" class="button">Retry all failed jobs</button>

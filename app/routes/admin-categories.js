@@ -11,6 +11,7 @@ import {
   loadTree,
   moveCategory,
   pathLabel,
+  placeCategory,
   reorderCategory,
   subtreeOf,
   updateCategory,
@@ -31,6 +32,21 @@ const NOTICES = {
 
 const parseId = (value) => (/^\d{1,10}$/.test(String(value)) ? Number(value) : null);
 const str = (value) => (typeof value === 'string' ? value : '');
+
+// The tree for the page, nested, built field by field. canUp and canDown drive the
+// buttons that work without JavaScript; the drag handles are added by category-sort.js.
+function nodeViews(siblings, counts) {
+  return siblings.map((n, index) => ({
+    id: n.id,
+    name: n.name,
+    slug: n.slug,
+    path: n.path,
+    docCount: counts.get(n.id) ?? 0,
+    canUp: index > 0,
+    canDown: index < siblings.length - 1,
+    children: nodeViews(n.children, counts),
+  }));
+}
 
 export function adminCategoriesRouter({ pool, config, needAdmin }) {
   const router = Router();
@@ -62,16 +78,9 @@ export function adminCategoriesRouter({ pool, config, needAdmin }) {
       errors,
       notice,
       form: { name: form.name ?? '', slug: form.slug ?? '', parentId: form.parentId ?? '' },
-      rows: tree.nodes.map((n, index) => ({
-        id: n.id,
-        name: n.name,
-        slug: n.slug,
-        depth: n.depth,
-        path: n.path,
-        docCount: counts.get(n.id) ?? 0,
-        canUp: tree.nodes.slice(0, index).some((o) => o.parentId === n.parentId),
-        canDown: tree.nodes.slice(index + 1).some((o) => o.parentId === n.parentId),
-      })),
+      empty: tree.nodes.length === 0,
+      roots: nodeViews(tree.roots, counts),
+      scripts: ['/js/category-sort.js'],
       parents: parentOptions(tree),
       nameMax: NAME_MAX,
       slugMax: SLUG_MAX,
@@ -154,6 +163,23 @@ export function adminCategoriesRouter({ pool, config, needAdmin }) {
     return finish(req, res, {
       action: 'category.reorder',
       summary: `Moved category "${req.category.slug}" ${direction}.`,
+      targetId: req.category.id,
+      done: 'reordered',
+      redirectTo: '/admin/categories',
+    });
+  });
+
+  // Drag and drop sends the category and its new 1-based place among its siblings.
+  router.post('/:id/place', needAdmin, verifyCsrf, loadCategory, async (req, res) => {
+    const raw = str(req.body.position);
+    const position = /^\d{1,4}$/.test(raw) ? Number(raw) : null;
+    const result = await placeCategory(pool, req.category.id, position);
+    if (!result.ok) return renderIndex(res, 400, { errors: result.errors });
+    if (!result.changed) return res.redirect(303, '/admin/categories?msg=unchanged');
+
+    return finish(req, res, {
+      action: 'category.reorder',
+      summary: `Moved category "${req.category.slug}" to place ${position}.`,
       targetId: req.category.id,
       done: 'reordered',
       redirectTo: '/admin/categories',

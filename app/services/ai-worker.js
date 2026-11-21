@@ -8,7 +8,8 @@
 //     row the loop stops claiming until the admin resumes it
 //   - at startup, jobs left running by a crash go back to the queue
 //   - on shutdown, in-flight calls are aborted and their jobs put back, unharmed
-//   - finished jobs older than JOB_RETENTION_DAYS are deleted
+//   - every tick is a heartbeat for /healthz (services/loops.js)
+//   (finished jobs are pruned by the maintenance job, services/maintenance.js)
 
 import { log, errorFields } from '../logger.js';
 import { recordAudit } from './audit.js';
@@ -19,10 +20,12 @@ import { editForDoc, setEditDocState } from './ai-edit.js';
 import { extractForDoc, extractForStaged } from './ai-extract.js';
 import { AiCapReached, cappedProvider, getUsage } from './ai-usage.js';
 import { DocFileError } from './docfiles.js';
-import { claimNext, markDone, markFailed, pruneJobs, recoverRunning, release, requeue } from './jobs.js';
+import { claimNext, markDone, markFailed, recoverRunning, release, requeue } from './jobs.js';
 
 const BACKOFF_BASE_MS = 5000;
-const PRUNE_INTERVAL_MS = 60 * 60 * 1000;
+const LOOP_NAME = 'ai-worker';
+// /healthz fails when the loop has been silent for this many poll intervals (at least a minute).
+const silenceLimitMs = (pollIntervalSeconds) => Math.max(60_000, pollIntervalSeconds * 3000);
 
 // What the admin is told, never the raw error: it may carry driver internals.
 function describeFailure(err) {
@@ -32,12 +35,11 @@ function describeFailure(err) {
   return `Unexpected error${err.code ? ` (${err.code})` : ''}. See the server log.`;
 }
 
-export function createWorker({ pool, config }) {
+export function createWorker({ pool, config, loops = null }) {
   const provider = cappedProvider(pool, config);
   const shutdown = new AbortController();
   const running = new Set();
   let timer = null;
-  let pruneTimer = null;
   let ticking = false;
   let stopping = false;
 
@@ -114,6 +116,7 @@ export function createWorker({ pool, config }) {
   async function tick() {
     if (ticking || stopping) return;
     ticking = true;
+    loops?.beat(LOOP_NAME);
     try {
       if ((await getCircuit(pool)).paused) return;
       while (running.size < config.ai.concurrency && !stopping) {
@@ -135,15 +138,6 @@ export function createWorker({ pool, config }) {
     }
   }
 
-  async function prune() {
-    try {
-      const removed = await pruneJobs(pool, config.worker.jobRetentionDays);
-      if (removed > 0) log.info('finished jobs pruned', { removed });
-    } catch (err) {
-      log.warn('job prune failed', errorFields(err));
-    }
-  }
-
   return {
     // Does nothing when the AI is not configured: uploads skip the queue then.
     async start() {
@@ -157,9 +151,7 @@ export function createWorker({ pool, config }) {
       } catch (err) {
         log.warn('ai job recovery failed', errorFields(err));
       }
-      await prune();
-      pruneTimer = setInterval(prune, PRUNE_INTERVAL_MS);
-      pruneTimer.unref();
+      loops?.register(LOOP_NAME, silenceLimitMs(config.worker.pollIntervalSeconds));
       timer = setInterval(tick, config.worker.pollIntervalSeconds * 1000);
       timer.unref();
       tick();
@@ -169,7 +161,7 @@ export function createWorker({ pool, config }) {
     async stop() {
       stopping = true;
       clearInterval(timer);
-      clearInterval(pruneTimer);
+      loops?.unregister(LOOP_NAME);
       shutdown.abort();
       await Promise.allSettled([...running]);
     },

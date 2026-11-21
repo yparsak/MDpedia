@@ -1,6 +1,6 @@
 // The audit log (brainstorm section 7). Append-only: this module only inserts
-// and reads, and nothing in the app updates or deletes rows. Pruning by age
-// arrives in Phase 10.
+// and reads, and nothing in the app updates rows. The only delete is the age
+// limit in pruneAudit, run by the maintenance job (Phase 10).
 //
 // Never pass a password, a session ID, the API key or document text to
 // recordAudit. Summaries are short sentences written by the caller.
@@ -40,4 +40,11 @@ export async function listAudit(pool, { limit, offset }) {
     [limit, offset],
   );
   return { total: Number(total), rows };
+}
+
+// Deletes entries older than the retention limit (a year by default). Resolves
+// to how many were removed. Only the maintenance job calls this.
+export async function pruneAudit(pool, retentionDays) {
+  const [result] = await pool.query('DELETE FROM audit_log WHERE created_at < NOW() - INTERVAL ? DAY', [retentionDays]);
+  return result.affectedRows;
 }

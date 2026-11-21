@@ -12,7 +12,7 @@ import { searchRouter } from './routes/search.js';
 const appDir = path.dirname(fileURLToPath(import.meta.url));
 const { version } = JSON.parse(fs.readFileSync(path.join(appDir, '..', 'package.json'), 'utf8'));
 
-export function createApp({ config, pool }) {
+export function createApp({ config, pool, loops = null }) {
   const app = express();
 
   app.set('view engine', 'ejs');
@@ -25,8 +25,10 @@ export function createApp({ config, pool }) {
 
   app.use(requestLogger);
 
-  // Baseline security headers (brainstorm 5.11, section 7). Inline styles are
-  // allowed because KaTeX emits style attributes; scripts stay strict.
+  // Baseline security headers (brainstorm 5.11, section 7). Scripts are strict:
+  // 'self' only, no inline script and no inline event handler (script-src-attr
+  // stays at helmet's 'none'). KaTeX emits style attributes, so style
+  // attributes are allowed; style elements and stylesheets stay 'self' only.
   // The site runs over plain HTTP on the LAN for now, so the defaults that only
   // make sense over HTTPS are turned off: upgrade-insecure-requests would make
   // the browser request the CSS over https and fail, and HSTS is ignored on HTTP.
@@ -36,7 +38,8 @@ export function createApp({ config, pool }) {
         directives: {
           defaultSrc: ["'self'"],
           scriptSrc: ["'self'"],
-          styleSrc: ["'self'", "'unsafe-inline'"],
+          styleSrc: ["'self'"],
+          styleSrcAttr: ["'unsafe-inline'"],
           imgSrc: ["'self'"],
           fontSrc: ["'self'"],
           objectSrc: ["'none'"],
@@ -58,7 +61,13 @@ export function createApp({ config, pool }) {
     express.static(path.join(appDir, '..', 'node_modules', 'katex', 'dist'), { index: false, dotfiles: 'ignore' }),
   );
 
-  app.use(statusRouter({ pool }));
+  // SortableJS for the category editor's drag and drop (an optional enhancement).
+  app.use(
+    '/vendor/sortablejs',
+    express.static(path.join(appDir, '..', 'node_modules', 'sortablejs', 'modular'), { index: false, dotfiles: 'ignore' }),
+  );
+
+  app.use(statusRouter({ pool, loops }));
   app.use(readerRouter({ pool }));
   app.use(searchRouter({ pool, config }));
   app.use('/admin', adminRouter({ pool, config, version }));

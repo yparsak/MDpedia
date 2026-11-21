@@ -1,5 +1,6 @@
 import express, { Router } from 'express';
 import { loadAdminSession, noStore, requireAdmin, verifyCsrf } from '../middleware/admin-session.js';
+import { loadBackupAge } from '../middleware/backup-age.js';
 import { FIELD, makeLoginToken, verifyLoginToken } from '../services/csrf.js';
 import { createThrottle } from '../services/throttle.js';
 import { recordAudit, listAudit } from '../services/audit.js';
@@ -10,6 +11,7 @@ import { countAttention } from '../services/reconcile.js';
 import { countPendingProposals } from '../services/review.js';
 import { listStaged } from '../services/replace.js';
 import { pageCount, parsePage } from '../services/pagination.js';
+import { getBackupAge } from '../services/backup-status.js';
 import { getStatus } from '../services/status.js';
 import { countUnresolved } from '../services/wiki-links.js';
 import { aiOverview } from '../services/ai-status.js';
@@ -23,6 +25,7 @@ import { adminImportRouter } from './admin-import.js';
 import { adminReplaceRouter } from './admin-replace.js';
 import { adminReviewRouter } from './admin-review.js';
 import { adminLinksRouter } from './admin-links.js';
+import { adminMaintenanceRouter } from './admin-maintenance.js';
 import { adminSearchRouter } from './admin-search.js';
 import { findByUsername, normalizeUsername, recordLogin, setPassword } from '../services/admins.js';
 import { hashPassword, passwordProblems, verifyAgainstDummy, verifyPassword } from '../services/passwords.js';
@@ -60,6 +63,8 @@ export function adminRouter({ pool, config, version }) {
   const formBody = express.urlencoded({ extended: false, limit: '64kb' });
   router.use((req, res, next) => (req.path === '/edit' || req.path.startsWith('/edit/') ? next() : formBody(req, res, next)));
   router.use(loadAdminSession({ pool, config }));
+  // The age of the last backup, for the pages in front of a risky change and the maintenance page.
+  router.use(['/review', '/categories', '/jobs', '/import', '/edit', '/maintenance'], loadBackupAge({ pool, config }));
 
   const needAdmin = requireAdmin({ config });
   const secret = config.session.secret;
@@ -163,6 +168,7 @@ export function adminRouter({ pool, config, version }) {
       attention: await countAttention(pool),
       stagedCount: (await listStaged(pool)).length,
       ai: await aiOverview(pool, config),
+      backup: await getBackupAge(pool, config),
       sessionExpires: req.session.expiresAt,
       idleMinutes: config.session.idleMinutes,
       recent: rows.map(auditRow),
@@ -233,6 +239,10 @@ export function adminRouter({ pool, config, version }) {
 
   router.use('/ai', adminAiRouter({ pool, config, needAdmin }));
   router.use('/jobs', adminJobsRouter({ pool, config, needAdmin }));
+
+  // ------------------------------------------------------------ maintenance
+
+  router.use('/maintenance', adminMaintenanceRouter({ pool, config, needAdmin }));
 
   // ------------------------------------------------------------------ links
 

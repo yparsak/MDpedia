@@ -324,4 +324,34 @@ CREATE TABLE IF NOT EXISTS reconcile_state (
 
 INSERT IGNORE INTO reconcile_state (id) VALUES (1);
 
-INSERT IGNORE INTO schema_migrations (version) VALUES ('000_schema_migrations'), ('001_admin'), ('002_documents'), ('003_categories'), ('004_search'), ('005_links'), ('006_ai'), ('007_review'), ('008_replace'), ('009_bulk_edit');
+-- Backup status, one row (Phase 10).
+CREATE TABLE IF NOT EXISTS backup_status (
+  id              TINYINT UNSIGNED NOT NULL,
+  last_success_at DATETIME         NULL,
+  last_attempt_at DATETIME         NULL,
+  last_result     ENUM('ok', 'failed') NULL,
+  last_message    VARCHAR(300)     NULL,
+  last_target     VARCHAR(255)     NULL,
+  docs_count      INT UNSIGNED     NULL,
+  dump_bytes      BIGINT UNSIGNED  NULL,
+  PRIMARY KEY (id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+INSERT IGNORE INTO backup_status (id) VALUES (1);
+
+-- One row per task per maintenance run (Phase 10).
+CREATE TABLE IF NOT EXISTS maintenance_runs (
+  id             INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  task           VARCHAR(40)  NOT NULL,
+  started_at     DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  duration_ms    INT UNSIGNED NOT NULL DEFAULT 0,
+  trigger_source ENUM('schedule', 'manual') NOT NULL,
+  status         ENUM('ok', 'failed') NOT NULL,
+  rows_pruned    INT UNSIGNED NOT NULL DEFAULT 0,
+  message        VARCHAR(300) NULL,
+  PRIMARY KEY (id),
+  KEY idx_maintenance_task (task, id),
+  KEY idx_maintenance_started (started_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+INSERT IGNORE INTO schema_migrations (version) VALUES ('000_schema_migrations'), ('001_admin'), ('002_documents'), ('003_categories'), ('004_search'), ('005_links'), ('006_ai'), ('007_review'), ('008_replace'), ('009_bulk_edit'), ('010_operations');

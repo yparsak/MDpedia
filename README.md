@@ -7,7 +7,7 @@ A Markdown wiki for a Raspberry Pi: math rendering, keyword search, and AI-assis
 - `db/README.md`: the SQL workflow.
 - `samples/README.md`: the test fixtures.
 
-## Quick start (through Phase 9)
+## Quick start (through Phase 10)
 
 ```bash
 cp .env.example .env     # fill in DB_PASSWORD and SESSION_SECRET (openssl rand -hex 32)
@@ -16,7 +16,7 @@ mkdir -p /srv/MDpedia-data/docs /srv/MDpedia-data/staging   # your DOCS_DIR and 
 make env-check
 make install
 make migrate-status
-make migrate      # applies 000 to 009 (takes a dump first)
+make migrate      # applies 000 to 010 (takes a dump first)
 make admin        # creates the admin; also resets the password
 make start
 ```
@@ -95,7 +95,17 @@ Then open `http://<pi-address>:3000/admin` and log in.
   matter, a changed `id` or `slug`, or a missing file marks the document on `/admin/attention` while readers keep
   the last good version; a second file claiming an existing `id` or `slug` is rejected and listed there.
   A scan applies body, title, summary and search terms; `published` and `categories` stay under app control.
-- `/admin/status` is the Phase 0 status page (it was `/` before Phase 2). `/healthz` is unchanged.
+- Operations (Phase 10): `make backup` (`scripts/backup.sh`) copies the docs, `categories.yaml` and a database dump to the
+  external drive at `BACKUP_TARGET`, and refuses to run when the drive is not mounted; the dashboard shows "last backup:
+  N days ago" with a warning from `BACKUP_STALE_DAYS`, and the same age appears before bulk import, bulk approve, bulk
+  AI edits, retrying failed AI jobs and category changes. `/admin/maintenance` shows the backup status and the pruning
+  tasks (search log over `SEARCH_LOG_RETENTION_DAYS`, audit log over `AUDIT_RETENTION_DAYS`, finished jobs over
+  `JOB_RETENTION_DAYS`), which also run at start and every six hours. `/healthz` is 200 only when the database answers
+  and the worker loop is alive. `deploy/` holds the systemd unit, the journald size cap and the firewall steps; the
+  category editor has optional drag-and-drop (SortableJS). `docs/OPERATIONS.md` has the release, backup, restore and
+  warning-handling steps. `make test` rebuilds `MDpedia_test` and runs the tests against it (the database tests refuse any
+  name that does not end in `_test`); `make check-raw-tags` fails on any `<%-` that is not reviewed.
+- `/admin/status` is the Phase 0 status page (it was `/` before Phase 2). `/healthz` is the public health probe.
 - Each document is stored as `<slug>.md` in `DOCS_DIR`, with `id`, `slug`, `title`,
   `published`, `categories` (ids) and, when set, `keywords`, `key_phrases`, `synonyms` and `questions` in its front matter. The file is canonical; the database is an index.
 - In documents, write currency as `\$5`: a bare `$` starts an equation.

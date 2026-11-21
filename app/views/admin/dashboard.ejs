@@ -6,6 +6,13 @@
   <p class="notice notice-<%= notice.kind === 'ok' ? 'ok' : 'warn' %>"><%= notice.text %></p>
 <% } %>
 
+<% if (backup.stale) { %>
+  <div class="notice notice-warn" role="alert">
+    <strong><%= backup.known ? `The last backup is ${backup.days} day${backup.days === 1 ? '' : 's'} old.` : 'No backup has been recorded.' %></strong>
+    Plug in the backup drive and run <code>make backup</code>. <a href="/admin/maintenance">Details</a>
+  </div>
+<% } %>
+
 <%- include('../partials/ai-paused', { ai: ai }) %>
 
 <div class="cards">
@@ -59,7 +66,8 @@
   </section>
   <section class="card">
     <h2>Last backup</h2>
-    <p class="muted">Not tracked yet. Backup status arrives in Phase 10.</p>
+    <%- include('../partials/backup-age') %>
+    <p><a href="/admin/maintenance">Backup details and maintenance</a></p>
   </section>
   <section class="card">
     <h2>Your session</h2>

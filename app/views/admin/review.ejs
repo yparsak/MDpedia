@@ -27,6 +27,7 @@
 <% if (rows.length === 0) { %>
   <p>No documents here.</p>
 <% } else if (viewKey === 'ready') { %>
+  <%- include('../partials/backup-age') %>
   <form method="post" action="/admin/review/approve">
     <input type="hidden" name="_csrf" value="<%= csrfToken %>">
     <table class="log">

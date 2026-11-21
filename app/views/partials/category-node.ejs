@@ -1,0 +1,20 @@
+<%# One category and, nested, its subcategories. `c` is the node (see nodeViews in admin-categories.js). %>
+<li class="cat-item" data-id="<%= c.id %>">
+  <div class="cat-row">
+    <span class="drag-handle" title="Drag to reorder" aria-hidden="true" hidden>&#8942;&#8942;</span>
+    <a href="/admin/categories/<%= c.id %>"><%= c.name %></a>
+    <code><%= c.path %></code>
+    <span class="muted"><%= c.docCount %> doc<%= c.docCount === 1 ? '' : 's' %></span>
+    <form class="inline-form" method="post" action="/admin/categories/<%= c.id %>/reorder">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <% if (c.canUp) { %><button type="submit" name="direction" value="up" class="link-button">Up</button><% } %>
+      <% if (c.canDown) { %><button type="submit" name="direction" value="down" class="link-button">Down</button><% } %>
+    </form>
+    <a href="/admin/categories/<%= c.id %>">Edit</a>
+  </div>
+  <% if (c.children.length > 0) { %>
+    <ul class="cat-tree" data-sortable>
+      <% c.children.forEach(function (child) { %><%- include('category-node', { c: child }) %><% }) %>
+    </ul>
+  <% } %>
+</li>

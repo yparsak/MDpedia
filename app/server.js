@@ -6,7 +6,8 @@ import { createPool } from './db.js';
 import { createApp } from './app.js';
 import { createWorker } from './services/ai-worker.js';
 import { createReconciler } from './services/reconcile.js';
-import { pruneSearchLog } from './services/search-log.js';
+import { createLoopMonitor } from './services/loops.js';
+import { createMaintenance } from './services/maintenance.js';
 import { runSelfCheck } from './services/selfcheck.js';
 import { log, errorFields } from './logger.js';
 
@@ -26,8 +27,10 @@ if (!result.ok) {
 
 const { config } = result;
 const pool = createPool(config.db);
-const app = createApp({ config, pool });
-const worker = createWorker({ pool, config });
+const loops = createLoopMonitor();
+const app = createApp({ config, pool, loops });
+const worker = createWorker({ pool, config, loops });
+const maintenance = createMaintenance({ pool, config });
 const reconciler = createReconciler({ pool, config });
 
 console.log(`\nMDpedia ${version}`);
@@ -48,20 +51,9 @@ const server = app.listen(config.server.port, config.server.host, async () => {
   await reconciler.start();
 });
 
-// The search log keeps queries only for SEARCH_LOG_RETENTION_DAYS (brainstorm 5.1).
-// Pruned at start and every few hours; a failure is logged and the app carries on.
-// Phase 10 may fold this into the operations worker.
-const PRUNE_INTERVAL_MS = 6 * 60 * 60 * 1000;
-async function pruneLog() {
-  try {
-    const removed = await pruneSearchLog(pool, config.search.logRetentionDays);
-    if (removed > 0) log.info('search log pruned', { removed });
-  } catch (err) {
-    log.warn('search log prune failed', errorFields(err));
-  }
-}
-pruneLog();
-setInterval(pruneLog, PRUNE_INTERVAL_MS).unref();
+// Pruning (search log, audit log, finished jobs) runs at start and every six hours,
+// and by hand from /admin/maintenance. A failure is logged and the app carries on.
+maintenance.start();
 
 server.on('error', (err) => {
   if (err.code === 'EADDRINUSE') {
@@ -83,6 +75,7 @@ async function shutdown(signal) {
     try {
       // Aborts calls in flight and puts their jobs back before the pool closes.
       reconciler.stop();
+      maintenance.stop();
       await worker.stop();
       await pool.end();
     } catch (err) {

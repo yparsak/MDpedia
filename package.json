@@ -32,6 +32,7 @@
     "remark-math": "^6.0.0",
     "remark-parse": "^11.0.0",
     "remark-rehype": "^11.1.2",
+    "sortablejs": "^1.15.6",
     "unified": "^11.0.5",
     "unist-util-visit": "^5.0.0",
     "yaml": "^2.7.0",

@@ -62,10 +62,7 @@
   </tr>
   <tr>
     <th scope="row">Last backup</th>
-    <td>
-      <% if (backupKnown) { %><%= backupDays %> day<%= backupDays === 1 ? '' : 's' %> ago
-      <% } else { %><span class="muted">Not tracked yet (backup status arrives in Phase 10). Nothing goes live without your approval, but take a dump first if the library matters: <code>make db-dump</code>.</span><% } %>
-    </td>
+    <td><%- include('../partials/backup-age') %></td>
   </tr>
 </table>
 

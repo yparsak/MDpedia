@@ -1,0 +1,22 @@
+<%# The age of the last backup. Needs `backup` from the loadBackupAge middleware or the dashboard route. %>
+<% if (locals.backup) { %>
+  <div class="backup-age<%= backup.stale ? ' backup-stale' : '' %>">
+    <% if (backup.known) { %>
+      <p><strong>Last backup: <%= backup.days %> day<%= backup.days === 1 ? '' : 's' %> ago</strong>
+        <span class="muted">(<%= backup.lastSuccessAt %>)</span></p>
+    <% } else { %>
+      <p><strong>No backup has been recorded.</strong></p>
+    <% } %>
+    <% if (backup.stale) { %>
+      <p class="error-text">
+        <% if (backup.known) { %>That is past the limit of <%= backup.staleDays %> day<%= backup.staleDays === 1 ? '' : 's' %> (<code>BACKUP_STALE_DAYS</code>).<% } %>
+        Plug in the backup drive and run <code>make backup</code> before you go on.
+      </p>
+    <% } else { %>
+      <p class="muted">Nothing here can be undone from the app. <code>make backup</code> takes a fresh copy.</p>
+    <% } %>
+    <% if (backup.lastResult === 'failed') { %>
+      <p class="error-text">The last attempt (<%= backup.lastAttemptAt %>) failed: <%= backup.lastMessage %></p>
+    <% } %>
+  </div>
+<% } %>

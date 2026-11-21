@@ -36,7 +36,7 @@ TEST_DB ?= MDpedia_test
 
 MAX_UPLOAD_BYTES_DEFAULT := 262144
 
-.PHONY: help env-check install start dev lint audit test \
+.PHONY: help env-check install start dev lint audit test test-quick \
         db-check db-shell db-dump migrate migrate-status migrate-one rollback-one \
         schema-dump seed-categories test-db-reset \
         admin backup health smoke mock-ai samples-verify check-raw-tags clean
@@ -74,11 +74,12 @@ help:
 	@echo "    make backup            run scripts/backup.sh"
 	@echo
 	@echo "  Checks"
-	@echo "    make test              npm test (against the test database)"
+	@echo "    make test              rebuild $(TEST_DB), then npm test against it (the full run)"
+	@echo "    make test-quick        npm test with no database (the database tests are skipped)"
 	@echo "    make lint              eslint"
 	@echo "    make audit             npm audit"
 	@echo "    make samples-verify    confirm the test fixtures still hold their invariants"
-	@echo "    make check-raw-tags    list every <%- raw-output tag in the templates"
+	@echo "    make check-raw-tags    list every <%- raw-output tag; fails if one is not on the allowlist"
 
 # ----------------------------------------------------------------- environment
 
@@ -106,8 +107,15 @@ start: env-check
 dev: env-check
 	NODE_ENV=development npm start
 
-test:
+# The full run: rebuild the throwaway database from the migrations, then run the
+# tests against it. The tests read the database name from TEST_DB_NAME only and
+# refuse any name that does not end in _test (scripts/lib/test-db.js).
+test: test-db-reset
 	@test -f package.json || { echo "package.json does not exist yet"; exit 1; }
+	$(LOAD_ENV) TEST_DB_NAME="$(TEST_DB)" npm test
+
+# No database: the tests that need one are skipped.
+test-quick:
 	npm test
 
 lint:
@@ -194,7 +202,9 @@ seed-categories: env-check
 	@$(LOAD_ENV) MYSQL_PWD="$$DB_PASSWORD" $(MARIADB_BIN) -h "$$DB_HOST" -P "$$DB_PORT" -u "$$DB_USER" "$$DB_NAME" \
 	  < $(SEED_DIR)/categories_seed.sql && echo "category tree seeded"
 
+# Refuses any name that does not end in _test, so a stray TEST_DB=MDpedia cannot drop the real database.
 test-db-reset:
+	@case "$(TEST_DB)" in ?*_test) ;; *) echo "ERROR: refusing to drop \"$(TEST_DB)\": the test database name must end in _test."; exit 1;; esac
 	@echo "This drops and rebuilds $(TEST_DB). The project database is untouched."
 	@$(LOAD_ENV) \
 	MYSQL_PWD="$$DB_PASSWORD" $(MARIADB_BIN) -h "$$DB_HOST" -P "$$DB_PORT" -u "$$DB_USER" \
@@ -211,6 +221,8 @@ test-db-reset:
 admin: env-check
 	node scripts/create-admin.js
 
+# Copies the docs, categories.yaml and a database dump to BACKUP_TARGET (the external
+# drive). Fails, and records the failure, if the drive is not mounted.
 backup:
 	bash scripts/backup.sh
 
@@ -270,10 +282,10 @@ samples-verify:
 	exit $$fail
 
 # Brainstorm 5.7: raw output is allowed only for sanitized document HTML and
-# for includes. Review this list before every release.
+# for includes. The allowlist is scripts/lib/raw-tags.js; this fails on any other
+# `<%-` and lists the allowed ones to review before every release.
 check-raw-tags:
-	@if [ -d app/views ]; then grep -rn '<%-' app/views || echo "  no raw-output tags found"; \
-	else echo "  app/views does not exist yet"; fi
+	node scripts/check-raw-tags.js
 
 clean:
 	rm -rf node_modules

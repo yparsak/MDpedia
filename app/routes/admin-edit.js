@@ -4,7 +4,6 @@ import { verifyCsrf } from '../middleware/admin-session.js';
 import { aiOverview } from '../services/ai-status.js';
 import { allowanceNeeded, grantAllowance } from '../services/ai-usage.js';
 import { recordAudit } from '../services/audit.js';
-import { getBackupAge } from '../services/backup-status.js';
 import { loadTree } from '../services/categories.js';
 import {
   INSTRUCTION_MAX,
@@ -81,7 +80,6 @@ export function adminEditRouter({ pool, config, needAdmin }) {
     const tree = await loadTree(pool);
     const { matched, excluded, unpublished, unknown } = await findScopeDocs(pool, tree, scope);
     const ai = await aiOverview(pool, config);
-    const backup = await getBackupAge();
     const calls = estimateCalls(matched.length, config.bulkEdit.maxRetries);
     const overLimit = matched.length > config.bulkEdit.maxDocs;
     res.status(status).render('admin/edit-confirm', {
@@ -98,8 +96,6 @@ export function adminEditRouter({ pool, config, needAdmin }) {
       calls,
       remaining: Math.max(0, ai.usage.cap - ai.usage.used),
       allowance: allowanceNeeded(ai.usage, calls.expected),
-      backupKnown: backup.known,
-      backupDays: backup.known ? backup.days : 0,
       maxDocs: config.bulkEdit.maxDocs,
       maxRetries: config.bulkEdit.maxRetries,
       overLimit,

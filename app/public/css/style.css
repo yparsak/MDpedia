@@ -237,3 +237,14 @@ code { background: #f2f4f5; padding: 0.1em 0.35em; border-radius: 3px; }
 .diff .diff-skip { color: var(--muted); text-align: center; background: #f2f4f5; font-family: inherit; }
 .form-full { max-width: none; }
 .form-full textarea { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.85rem; }
+
+/* Phase 10: operations */
+.backup-age p { margin: 0.25rem 0; }
+.backup-stale { border-left: 4px solid var(--warn-line); padding-left: 0.75rem; }
+
+.cat-tree { list-style: none; margin: 0; padding-left: 0; }
+.cat-tree .cat-tree { padding-left: 1.75rem; }
+.cat-row { display: flex; align-items: baseline; flex-wrap: wrap; gap: 0.6rem; border-bottom: 1px solid var(--line); padding: 0.35rem 0; }
+.drag-handle { cursor: grab; color: var(--muted); letter-spacing: -0.2em; user-select: none; }
+.drag-handle[hidden] { display: none; }
+.sortable-ghost { opacity: 0.4; }

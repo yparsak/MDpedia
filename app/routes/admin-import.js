@@ -4,7 +4,6 @@ import { verifyCsrf } from '../middleware/admin-session.js';
 import { receiveUploads } from '../middleware/receive-upload.js';
 import { allowanceNeeded, getUsage, grantAllowance } from '../services/ai-usage.js';
 import { recordAudit } from '../services/audit.js';
-import { getBackupAge } from '../services/backup-status.js';
 import { getBatchReport, isStageToken, listBatches, previewStaged, readStaged, removeStaged, runImport, stageFiles } from '../services/bulk-import.js';
 
 const RECENT_BATCHES = 10;
@@ -32,13 +31,13 @@ export function adminImportRouter({ pool, config, needAdmin }) {
   }
 
   // What the confirmation states: the calls the import will make, today's usage and
-  // the allowance above the cap it needs, and the age of the last backup.
+  // the allowance above the cap it needs. The age of the last backup comes from the
+  // loadBackupAge middleware (res.locals.backup).
   async function renderConfirm(res, status, token, staged, errors = []) {
     const { accepted, skipped } = previewStaged(config, staged);
     const aiOn = aiConfigured(config);
     const calls = aiOn ? accepted.length : 0;
     const usage = await getUsage(pool, config.ai.dailyCap);
-    const backup = await getBackupAge();
     res.status(status).render('admin/import-confirm', {
       title: 'Confirm the import',
       errors,
@@ -50,8 +49,6 @@ export function adminImportRouter({ pool, config, needAdmin }) {
       usage,
       remaining: Math.max(0, usage.cap - usage.used),
       allowance: allowanceNeeded(usage, calls),
-      backupKnown: backup.known,
-      backupDays: backup.known ? backup.days : 0,
       maxAttempts: config.ai.maxAttempts,
     });
   }
