@@ -19,9 +19,13 @@ export async function enqueueJob(conn, docId, type = 'ingest') {
   return result.insertId;
 }
 
+// Two workers share the table: the AI worker takes every type but 'embed', the embed
+// worker (Phase 11) only 'embed'. A constant fragment, never user input.
+const typeScope = (embed) => (embed ? "type = 'embed'" : "type <> 'embed'");
+
 // Takes the oldest job that is due, or resolves to null. Resolves to { id, docId, type, attempts }.
-export async function claimNext(pool) {
-  const [candidates] = await pool.query("SELECT id FROM jobs WHERE status = 'queued' AND run_after <= NOW() ORDER BY id LIMIT 1");
+export async function claimNext(pool, { embed = false } = {}) {
+  const [candidates] = await pool.query(`SELECT id FROM jobs WHERE status = 'queued' AND run_after <= NOW() AND ${typeScope(embed)} ORDER BY id LIMIT 1`);
   if (candidates.length === 0) return null;
   const [result] = await pool.query(
     "UPDATE jobs SET status = 'running', locked_at = NOW(), attempts = attempts + 1 WHERE id = ? AND status = 'queued'",
@@ -63,10 +67,13 @@ export async function release(pool, jobId, message = null) {
 // At startup, jobs left "running" by a crash go back to the queue. The interrupted
 // run already counted as an attempt, so one that has used them all is failed.
 // Resolves to { requeued, failed }.
-export async function recoverRunning(pool, maxAttempts) {
-  const [exhausted] = await pool.query("SELECT id, doc_id, type FROM jobs WHERE status = 'running' AND attempts >= ?", [maxAttempts]);
+export async function recoverRunning(pool, maxAttempts, { embed = false } = {}) {
+  const scope = typeScope(embed);
+  const [exhausted] = await pool.query(`SELECT id, doc_id, type FROM jobs WHERE status = 'running' AND attempts >= ? AND ${scope}`, [maxAttempts]);
   for (const { id, doc_id: docId, type } of exhausted) {
     await markFailed(pool, id, 'The app restarted during every attempt.');
+    // An embed job has no document state to undo; the doc's vector is simply not there yet.
+    if (type === 'embed') continue;
     // A replace job's doc stays live; only its staged version failed.
     if (type === 'replace') await pool.query("UPDATE docs SET staged_status = 'failed' WHERE id = ? AND staged_status = 'processing'", [docId]);
     else if (type === 'edit') await pool.query("UPDATE edit_batch_docs SET status = 'failed', message = ? WHERE job_id = ? AND status IN ('queued', 'running')", ['The app restarted during every attempt.', id]);
@@ -75,7 +82,7 @@ export async function recoverRunning(pool, maxAttempts) {
   // A bulk edit doc that was running goes back to waiting with its job.
   const [running] = await pool.query("SELECT id FROM jobs WHERE status = 'running' AND type = 'edit'");
   if (running.length > 0) await pool.query("UPDATE edit_batch_docs SET status = 'queued' WHERE status = 'running' AND job_id IN (?)", [running.map((j) => j.id)]);
-  const [requeued] = await pool.query("UPDATE jobs SET status = 'queued', locked_at = NULL WHERE status = 'running'");
+  const [requeued] = await pool.query(`UPDATE jobs SET status = 'queued', locked_at = NULL WHERE status = 'running' AND ${scope}`);
   return { requeued: requeued.affectedRows, failed: exhausted.length };
 }
 

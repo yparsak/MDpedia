@@ -1,4 +1,4 @@
--- Full current schema for a fresh install (after Phase 7).
+-- Full current schema for a fresh install (after Phase 11).
 -- Regenerate with `make schema-dump` after every phase. The first dump will
 -- reformat this file into mariadb-dump's style; that is expected. Commit that
 -- version as the baseline, and later runs should then leave it unchanged.
@@ -354,4 +354,18 @@ CREATE TABLE IF NOT EXISTS maintenance_runs (
   KEY idx_maintenance_started (started_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-INSERT IGNORE INTO schema_migrations (version) VALUES ('000_schema_migrations'), ('001_admin'), ('002_documents'), ('003_categories'), ('004_search'), ('005_links'), ('006_ai'), ('007_review'), ('008_replace'), ('009_bulk_edit'), ('010_operations');
+-- Vector search lab (Phase 11). Needs MariaDB 11.7 or later. One VECTOR(384) per document,
+-- with the vector index added by 012_vector_index.
+CREATE TABLE IF NOT EXISTS doc_vectors (
+  doc_id     INT UNSIGNED NOT NULL,
+  embedding  VECTOR(384)  NOT NULL,
+  model      VARCHAR(200) NOT NULL,
+  pooling    VARCHAR(10)  NOT NULL,
+  input_hash CHAR(64)     NOT NULL,
+  updated_at DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (doc_id),
+  VECTOR INDEX idx_doc_vectors_embedding (embedding) M=8 DISTANCE=cosine,
+  CONSTRAINT fk_doc_vectors_doc FOREIGN KEY (doc_id) REFERENCES docs (id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+INSERT IGNORE INTO schema_migrations (version) VALUES ('000_schema_migrations'), ('001_admin'), ('002_documents'), ('003_categories'), ('004_search'), ('005_links'), ('006_ai'), ('007_review'), ('008_replace'), ('009_bulk_edit'), ('010_operations'), ('011_vectors'), ('012_vector_index');

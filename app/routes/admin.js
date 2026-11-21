@@ -27,6 +27,7 @@ import { adminReviewRouter } from './admin-review.js';
 import { adminLinksRouter } from './admin-links.js';
 import { adminMaintenanceRouter } from './admin-maintenance.js';
 import { adminSearchRouter } from './admin-search.js';
+import { adminVectorsRouter } from './admin-vectors.js';
 import { findByUsername, normalizeUsername, recordLogin, setPassword } from '../services/admins.js';
 import { hashPassword, passwordProblems, verifyAgainstDummy, verifyPassword } from '../services/passwords.js';
 import {
@@ -52,7 +53,7 @@ const noticeFor = (req) => noticeFrom(NOTICES, req);
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-export function adminRouter({ pool, config, version }) {
+export function adminRouter({ pool, config, version, embedder = null }) {
   const router = Router();
   const loginThrottle = createThrottle({ maxFails: config.rate.loginFailsPer15Min });
   // The change-password form also checks a password, so it gets the same limit.
@@ -234,6 +235,7 @@ export function adminRouter({ pool, config, version }) {
   // ----------------------------------------------------------------- search
 
   router.use('/search', adminSearchRouter({ pool, config, needAdmin }));
+  router.use('/vectors', adminVectorsRouter({ pool, config, needAdmin, embedder }));
 
   // ------------------------------------------------------------ AI and jobs
 

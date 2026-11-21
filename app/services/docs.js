@@ -10,6 +10,7 @@
 
 import { bodyHash, serializeFrontMatter } from './frontmatter.js';
 import { createDocFile, removeDocFile, updateDocFile } from './docfiles.js';
+import { enqueueEmbedding } from './embed-queue.js';
 import { enqueueJob } from './jobs.js';
 import { emptyTerms, insertTerms, termsToFrontMatter } from './search-terms.js';
 import { insertLinks, renderWithLinks, rerenderDependents } from './wiki-links.js';
@@ -175,6 +176,7 @@ export async function setPublished(pool, config, doc, published) {
     await pool.query("UPDATE docs SET published = 0, status = 'unpublished' WHERE id = ?", [doc.id]);
   }
   await rerenderDependents(pool, config, doc);
+  if (published) await enqueueEmbedding(pool, config, doc.id);
 }
 
 // The slug never changes. The page is rendered again because a first heading
@@ -189,6 +191,7 @@ export async function setTitle(pool, config, doc, title) {
     [title, rendered.html, rendered.plainText, rendered.hasRawHtml ? 1 : 0, bodyHash(body), doc.id],
   );
   if (doc.published) await rerenderDependents(pool, config, doc);
+  await enqueueEmbedding(pool, config, doc.id);
 }
 
 // A saved summary is flagged as hand-edited; an empty one clears the summary and the flag.
@@ -199,4 +202,5 @@ export async function setSummary(pool, config, doc, summary) {
     summary_edited: summary ? true : undefined,
   }));
   await pool.query('UPDATE docs SET summary = ?, summary_edited = ? WHERE id = ?', [summary || null, summary ? 1 : 0, doc.id]);
+  await enqueueEmbedding(pool, config, doc.id);
 }

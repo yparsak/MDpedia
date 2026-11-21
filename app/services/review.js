@@ -9,6 +9,7 @@ import { MAX_DEPTH, checkName, checkSlug, createCategory } from './categories.js
 import { exportCategories } from './categories-export.js';
 import { MAX_DOC_CATEGORIES, getDocCategoryIds, setDocCategories } from './doc-categories.js';
 import { DocFileError } from './docfiles.js';
+import { enqueueEmbedding } from './embed-queue.js';
 import { setPublished } from './docs.js';
 
 // ---------------------------------------------------------------- proposals
@@ -114,6 +115,8 @@ export async function rejectProposals(pool, proposals, decisions) {
 export async function approveDoc(pool, config, doc) {
   if (!doc.published) await setPublished(pool, config, doc, true);
   await pool.query('UPDATE docs SET approved_at = NOW() WHERE id = ?', [doc.id]);
+  // The summary and keywords were saved before this; the vector is made from them.
+  await enqueueEmbedding(pool, config, doc.id);
 }
 
 // ---------------------------------------------------------------- exceptions

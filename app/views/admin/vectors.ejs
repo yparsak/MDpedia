@@ -1,0 +1,146 @@
+<%- include('../partials/header') %>
+
+<h1>Vector lab</h1>
+
+<% if (notice) { %>
+  <p class="notice notice-<%= notice.kind === 'ok' ? 'ok' : 'warn' %>"><%= notice.text %></p>
+<% } %>
+
+<p class="muted">
+  An admin-only experiment. A query is turned into a vector on this machine and compared with the vector of every
+  published document (made from its title, summary, keywords and questions). Readers never see or trigger this.
+  <a href="/admin/vectors/compare">Compare with keyword search</a>.
+</p>
+
+<% if (!enabled) { %>
+  <p class="notice notice-warn">
+    Vector search is off. Set <code>EMBED_PROVIDER=transformersjs</code> in <code>.env</code> (see <code>.env.example</code>) and restart the app.
+  </p>
+<% } %>
+<% if (status.tableMissing) { %>
+  <p class="notice notice-error" role="alert">The <code>doc_vectors</code> table is missing. Run <code>make migrate</code> (it needs MariaDB 11.7 or later).</p>
+<% } %>
+
+<h2>Status</h2>
+<table class="facts">
+  <tr><th scope="row">Runtime</th><td><%= info.provider %>, model <code><%= info.model %></code> (<%= info.dtype %>), <%= info.dimensions %> dimensions, <%= info.pooling %> pooling</td></tr>
+  <tr>
+    <th scope="row">Model</th>
+    <td>
+      <% if (embedState.state === 'ready') { %>loaded, so queries are warm
+      <% } else if (embedState.state === 'loading') { %>loading (the first use downloads it into <code><%= info.cacheDir %></code>)
+      <% } else if (embedState.state === 'failed') { %><span class="error-text"><%= embedState.error %></span>
+      <% } else if (embedState.state === 'off') { %>off
+      <% } else { %>not loaded yet: the first query or job loads it, which is slower<% } %>
+    </td>
+  </tr>
+  <tr><th scope="row">Query prefix</th><td><code><%= info.queryPrefix %></code></td></tr>
+  <% if (!status.tableMissing) { %>
+    <tr><th scope="row">Vector index</th><td><%= status.indexPresent ? 'present (012_vector_index)' : 'none: searches are exact scans' %></td></tr>
+  <% } %>
+</table>
+
+<% if (status.coverage) { %>
+  <div class="stats">
+    <div class="stat"><strong><%= status.coverage.published %></strong>published documents</div>
+    <div class="stat"><strong><%= status.coverage.current %></strong>with a current vector</div>
+    <div class="stat"><strong><%= status.coverage.stale %></strong>stale (text or settings changed)</div>
+    <div class="stat"><strong><%= status.coverage.missing %></strong>without a vector</div>
+    <div class="stat"><strong><%= status.jobs.queued + status.jobs.running %></strong>embedding jobs waiting</div>
+    <div class="stat"><strong><%= status.jobs.failed %></strong>embedding jobs failed</div>
+  </div>
+  <% if (status.coverage.orphans > 0) { %>
+    <p class="muted"><%= status.coverage.orphans %> stored vector<%= status.coverage.orphans === 1 ? '' : 's' %> belong to unpublished documents. They are kept and never searched.</p>
+  <% } %>
+  <% if (status.jobs.failed > 0) { %>
+    <p class="notice notice-warn"><%= status.jobs.failed %> embedding job<%= status.jobs.failed === 1 ? '' : 's' %> failed. See <a href="/admin/jobs?status=failed">the failed jobs</a>; Retry works there.</p>
+  <% } %>
+
+  <% if (enabled) { %>
+    <form class="inline-form" method="post" action="/admin/vectors/rebuild">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <button type="submit" class="button">Rebuild all vectors</button>
+    </form>
+    <p class="muted">
+      Queues every published document, current or not. Vectors are made when a document is approved, replaced, or its
+      title, summary or keywords change; rebuild after changing the model, the pooling or a prefix in <code>.env</code>.
+    </p>
+  <% } %>
+<% } %>
+
+<h2>Query</h2>
+<form class="form form-wide" method="get" action="/admin/vectors">
+  <label for="q">Query</label>
+  <input id="q" name="q" type="search" value="<%= query %>" maxlength="200" required>
+  <label for="mode">Search</label>
+  <select id="mode" name="mode">
+    <option value="scan"<%= mode === 'scan' ? ' selected' : '' %>>Exact scan (no index)</option>
+    <option value="index"<%= mode === 'index' ? ' selected' : '' %>>Vector index</option>
+    <option value="both"<%= mode === 'both' ? ' selected' : '' %>>Both, side by side</option>
+  </select>
+  <button type="submit">Search</button>
+</form>
+
+<% if (error) { %>
+  <div class="notice notice-error" role="alert"><%= error %></div>
+<% } %>
+
+<% if (runs.length > 0) { %>
+  <h2>Result</h2>
+  <p class="muted">
+    The query was embedded in <%= queryMs %> ms<% if (coldStart) { %> (the model was not loaded yet, so this includes loading it: run it again for the warm time)<% } %>.
+    Cosine distance: 0 is the same direction, larger is further away.
+  </p>
+  <% if (agreement) { %>
+    <p class="notice notice-<%= agreement.sameOrder ? 'ok' : 'warn' %>">
+      <% if (agreement.sameOrder) { %>The scan and the index returned the same <%= agreement.of %> documents in the same order.
+      <% } else { %>The scan and the index differ: <%= agreement.shared %> of <%= agreement.of %> documents are in both lists. The index is approximate; the scan is exact.<% } %>
+    </p>
+  <% } %>
+
+  <% runs.forEach(function (run) { %>
+    <h3><%= run.mode === 'index' ? 'Vector index' : 'Exact scan' %> <span class="muted">(<%= run.ms %> ms in the database)</span></h3>
+    <% if (run.rows.length === 0) { %>
+      <p class="muted">No results. Either no document has a current vector yet, or none is published.</p>
+    <% } else { %>
+      <table class="log">
+        <thead><tr><th>#</th><th>Document</th><th>Distance</th></tr></thead>
+        <tbody>
+          <% run.rows.forEach(function (r, i) { %>
+            <tr>
+              <td><%= i + 1 %></td>
+              <td>
+                <a href="/admin/docs/<%= r.id %>"><%= r.title %></a> <span class="muted"><code><%= r.slug %></code></span>
+                <% if (r.summary) { %><br><span class="muted"><%= r.summary.length > 160 ? r.summary.slice(0, 160) + '...' : r.summary %></span><% } %>
+              </td>
+              <td><%= r.distance.toFixed(4) %></td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    <% } %>
+
+    <details>
+      <summary>The SQL and the query plan</summary>
+      <pre class="ai-output"><%= run.sql %></pre>
+      <table class="log">
+        <thead><tr><th>Table</th><th>Access type</th><th>Key used</th><th>Rows examined</th><th>Extra</th></tr></thead>
+        <tbody>
+          <% run.plan.forEach(function (p) { %>
+            <tr><td><%= p.table %></td><td><%= p.type %></td><td><%= p.key || 'none' %></td><td><%= p.rows %></td><td><%= p.extra %></td></tr>
+          <% }) %>
+        </tbody>
+      </table>
+      <p class="muted">
+        <% if (run.mode === 'index') { %>
+          The index serves only the inner query: a bare <code>ORDER BY VEC_DISTANCE_COSINE(...) LIMIT n</code>. It fetches extra rows
+          because the published and model filters can apply only afterwards. Look for <code>idx_doc_vectors_embedding</code> under "Key used".
+        <% } else { %>
+          The <code>+ 0</code> around the distance keeps MariaDB from using the index, so every row's distance is computed: an exact result.
+        <% } %>
+      </p>
+    </details>
+  <% }) %>
+<% } %>
+
+<%- include('../partials/footer') %>

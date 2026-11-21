@@ -14,6 +14,7 @@ import { searchPublished } from './search.js';
 
 export const EVAL_MAX_QUERIES = 200;
 export const TOP_N = 3;
+export const EVAL_MAX_BYTES = 256 * 1024;
 
 const slug = z.string().min(1).max(80);
 
@@ -54,6 +55,12 @@ export function parseTestSet(text) {
   };
 }
 
+// The 1-based rank of the best expected doc among the result ids, or null when none is there.
+export function bestRank(expectedIds, ids) {
+  const positions = expectedIds.map((id) => ids.indexOf(id)).filter((i) => i !== -1);
+  return positions.length > 0 ? Math.min(...positions) + 1 : null;
+}
+
 // Runs every query. Resolves to { rows, summary }. A row has the query, how many
 // results it returned, the 1-based rank of the best expected doc (null when it is
 // not among the results) and whether that is within the top 3. An expected slug
@@ -67,8 +74,7 @@ export async function runEvaluation(pool, config, queries) {
   for (const q of queries) {
     const expectedIds = q.expected.map((s) => idBySlug.get(s)).filter((id) => id !== undefined);
     const { ids, partial } = await searchPublished(pool, config, parseQuery(q.query));
-    const positions = expectedIds.map((id) => ids.indexOf(id)).filter((i) => i !== -1);
-    const rank = positions.length > 0 ? Math.min(...positions) + 1 : null;
+    const rank = bestRank(expectedIds, ids);
     rows.push({
       query: q.query,
       note: q.note,

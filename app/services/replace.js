@@ -22,6 +22,7 @@ import {
   swapIntoPlace,
   writeStagedFile,
 } from './docfiles.js';
+import { enqueueEmbedding } from './embed-queue.js';
 import { bodyHash, parseFrontMatter, serializeFrontMatter } from './frontmatter.js';
 import { enqueueJob } from './jobs.js';
 import { insertTerms, termsFromFrontMatter } from './search-terms.js';
@@ -197,6 +198,8 @@ export async function approveStaged(pool, config, doc, expectedHash) {
   }
   await removeStagedFile(config, doc.id).catch(() => {});
   await dropReplaceJobs(pool, doc.id);
+  // The summary and keywords may have changed with the new version.
+  await enqueueEmbedding(pool, config, doc.id);
   return { ok: true };
 }
 

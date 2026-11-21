@@ -5,6 +5,8 @@ import { loadEnvFile, loadConfig, summarize } from './config.js';
 import { createPool } from './db.js';
 import { createApp } from './app.js';
 import { createWorker } from './services/ai-worker.js';
+import { createEmbedder } from './services/embed-provider.js';
+import { createEmbedWorker } from './services/embed-worker.js';
 import { createReconciler } from './services/reconcile.js';
 import { createLoopMonitor } from './services/loops.js';
 import { createMaintenance } from './services/maintenance.js';
@@ -28,8 +30,10 @@ if (!result.ok) {
 const { config } = result;
 const pool = createPool(config.db);
 const loops = createLoopMonitor();
-const app = createApp({ config, pool, loops });
+const embedder = createEmbedder(config);
+const app = createApp({ config, pool, loops, embedder });
 const worker = createWorker({ pool, config, loops });
+const embedWorker = createEmbedWorker({ pool, config, embedder, loops });
 const maintenance = createMaintenance({ pool, config });
 const reconciler = createReconciler({ pool, config });
 
@@ -47,6 +51,8 @@ const server = app.listen(config.server.port, config.server.host, async () => {
   // After the self-check, so a database that is down or behind is reported first.
   // The worker does nothing unless the AI is configured.
   await worker.start();
+  // Vector search (Phase 11): does nothing unless EMBED_PROVIDER is set.
+  await embedWorker.start();
   // The file wins: edits made over SSH reach the database here, now and every RECONCILE_INTERVAL_MINUTES.
   await reconciler.start();
 });
@@ -77,6 +83,7 @@ async function shutdown(signal) {
       reconciler.stop();
       maintenance.stop();
       await worker.stop();
+      await embedWorker.stop();
       await pool.end();
     } catch (err) {
       log.error('error closing the database pool', errorFields(err));

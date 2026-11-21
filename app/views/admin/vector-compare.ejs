@@ -1,0 +1,109 @@
+<%- include('../partials/header') %>
+
+<h1>Keyword and vector compared</h1>
+
+<p class="muted">
+  The same query through the search readers use and through vector search, side by side. Below, the Phase 4 test set
+  is scored both ways. <a href="/admin/vectors">Back to the vector lab</a>.
+</p>
+
+<% if (!enabled) { %>
+  <p class="notice notice-warn">Vector search is off. Set <code>EMBED_PROVIDER=transformersjs</code> in <code>.env</code> and restart the app.</p>
+<% } %>
+<% if (errors.length > 0) { %>
+  <div class="notice notice-error" role="alert">
+    <ul>
+      <% errors.forEach(function (e) { %><li><%= e %></li><% }) %>
+    </ul>
+  </div>
+<% } %>
+
+<h2>One query</h2>
+<form class="form form-wide" method="get" action="/admin/vectors/compare">
+  <label for="q">Query</label>
+  <input id="q" name="q" type="search" value="<%= query %>" maxlength="200" required>
+  <button type="submit">Compare</button>
+</form>
+
+<% if (side) { %>
+  <% if (side.vectorError) { %>
+    <div class="notice notice-error" role="alert"><%= side.vectorError %></div>
+  <% } %>
+  <table class="log">
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Keyword search</th>
+        <th>Vector search<% if (side.vectorMode) { %> <span class="muted">(<%= side.vectorMode === 'index' ? 'index' : 'exact scan' %>)</span><% } %></th>
+      </tr>
+    </thead>
+    <tbody>
+      <% for (let i = 0; i < limit; i += 1) { %>
+        <% const k = side.keyword[i]; const v = side.vector[i]; %>
+        <% if (k || v) { %>
+          <tr>
+            <td><%= i + 1 %></td>
+            <td>
+              <% if (k) { %><a href="/admin/docs/<%= k.id %>"><%= k.title %></a><% } %>
+            </td>
+            <td>
+              <% if (v) { %><a href="/admin/docs/<%= v.id %>"><%= v.title %></a> <span class="muted">(<%= v.distance.toFixed(4) %>)</span><% } %>
+            </td>
+          </tr>
+        <% } %>
+      <% } %>
+    </tbody>
+  </table>
+  <% if (side.keyword.length === 0) { %><p class="muted">Keyword search found nothing for this query.</p><% } %>
+<% } %>
+
+<h2>Score the test set</h2>
+<p class="muted">
+  Upload the same JSON file as on the <a href="/admin/search/eval">search evaluation page</a>
+  (<code>db/seed/search_test_set.example.json</code>). Each query runs both ways; a method passes when the expected
+  document is in its top <%= topN %>. Vector search here is the exact scan. Up to <%= maxQueries %> queries and <%= maxBytes %> bytes.
+</p>
+<form class="form form-wide" method="post" action="/admin/vectors/compare/eval" enctype="multipart/form-data">
+  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+  <label for="file">Test set (.json)</label>
+  <input id="file" name="file" type="file" accept=".json,application/json" required>
+  <button type="submit">Score both ways</button>
+</form>
+
+<% if (report) { %>
+  <h2>Result</h2>
+  <div class="stats">
+    <div class="stat"><strong><%= report.summary.total %></strong>queries</div>
+    <div class="stat"><strong><%= (report.summary.keywordTopRate * 100).toFixed(1) %>%</strong>keyword: expected doc in the top <%= topN %> (<%= report.summary.keywordTop %>)</div>
+    <div class="stat"><strong><%= (report.summary.vectorTopRate * 100).toFixed(1) %>%</strong>vector: expected doc in the top <%= topN %> (<%= report.summary.vectorTop %>)</div>
+  </div>
+  <p class="muted">
+    Both pass: <%= report.summary.both %>. Only keyword: <%= report.summary.onlyKeyword %>. Only vector: <%= report.summary.onlyVector %>.
+    Neither: <%= report.summary.neither %>.
+  </p>
+  <% if (report.summary.unresolved > 0) { %>
+    <p class="notice notice-warn"><%= report.summary.unresolved %> quer<%= report.summary.unresolved === 1 ? 'y expects' : 'ies expect' %> a slug that is not a published document. Those can never pass.</p>
+  <% } %>
+
+  <table class="log">
+    <thead><tr><th>Query</th><th>Expected</th><th>Keyword rank</th><th>Vector rank</th></tr></thead>
+    <tbody>
+      <% report.rows.forEach(function (r) { %>
+        <tr>
+          <td>
+            <%= r.query %>
+            <% if (r.note) { %><span class="muted"> (<%= r.note %>)</span><% } %>
+          </td>
+          <td>
+            <% r.expected.forEach(function (s, i) { %><%= i > 0 ? ', ' : '' %><code><%= s %></code><% }) %>
+            <% if (r.missing.length > 0) { %><span class="badge badge-warn">not published</span><% } %>
+          </td>
+          <td class="<%= r.keywordTop ? 'eval-pass' : 'eval-fail' %>"><%= r.keywordRank === null ? 'not found' : r.keywordRank %></td>
+          <td class="<%= r.vectorTop ? 'eval-pass' : 'eval-fail' %>"><%= r.vectorRank === null ? 'not found' : r.vectorRank %></td>
+        </tr>
+      <% }) %>
+    </tbody>
+  </table>
+<% } %>
+
+<%- include('../partials/footer') %>

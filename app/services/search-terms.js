@@ -8,6 +8,7 @@
 //   { keywords: [{ term, weight }], phrases: [string], synonyms: [string], questions: [string] }
 
 import { updateDocFile } from './docfiles.js';
+import { enqueueEmbedding } from './embed-queue.js';
 import { cleanLine } from './text.js';
 
 export const WEIGHT_MIN = 1;
@@ -191,4 +192,5 @@ export async function setDocTerms(pool, config, doc, terms) {
   } finally {
     conn.release();
   }
+  await enqueueEmbedding(pool, config, doc.id);
 }

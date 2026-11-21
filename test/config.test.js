@@ -71,3 +71,19 @@ test('the summary never contains a secret', () => {
   assert.equal(text.includes('nvapi-secret-key'), false);
   assert.equal(text.includes('x'.repeat(32)), false);
 });
+
+test('vector search is off by default and the cache sits in the data directory', () => {
+  const { config } = loadConfig(valid);
+  assert.equal(config.embed.enabled, false);
+  assert.equal(config.embed.provider, 'none');
+  assert.equal(config.embed.dimensions, 384);
+  assert.equal(config.embed.pooling, 'cls');
+  assert.equal(config.embed.cacheDir, '/srv/MDpedia-data/embed-cache');
+});
+
+test('EMBED_PROVIDER and EMBED_POOLING accept only their known values', () => {
+  assert.equal(loadConfig({ ...valid, EMBED_PROVIDER: 'transformersjs' }).config.embed.enabled, true);
+  assert.match(loadConfig({ ...valid, EMBED_PROVIDER: 'ollama' }).errors[0], /^EMBED_PROVIDER:/);
+  assert.match(loadConfig({ ...valid, EMBED_POOLING: 'max' }).errors[0], /^EMBED_POOLING:/);
+  assert.match(loadConfig({ ...valid, EMBED_CACHE_DIR: 'relative/dir' }).errors[0], /^EMBED_CACHE_DIR:/);
+});

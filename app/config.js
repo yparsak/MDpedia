@@ -113,6 +113,23 @@ const schema = z.object({
   SEARCH_WEIGHT_SUMMARY: nonNegative('2'),
   SEARCH_WEIGHT_BODY: nonNegative('1'),
 
+  // Vector search (Phase 11). 'none' switches it off; the lab pages then say so.
+  EMBED_PROVIDER: z
+    .enum(['none', 'transformersjs'], { errorMap: () => ({ message: 'must be none or transformersjs' }) })
+    .default('none'),
+  EMBED_MODEL: z.string().default('Xenova/bge-small-en-v1.5'),
+  EMBED_DTYPE: z
+    .enum(['fp32', 'fp16', 'q8', 'q4'], { errorMap: () => ({ message: 'must be fp32, fp16, q8 or q4' }) })
+    .default('fp32'),
+  EMBED_DIMENSIONS: int('384', 1, 4096),
+  EMBED_POOLING: z
+    .enum(['cls', 'mean'], { errorMap: () => ({ message: 'must be cls or mean' }) })
+    .default('cls'),
+  EMBED_DOC_PREFIX: z.string().default(''),
+  EMBED_QUERY_PREFIX: z.string().default('Represent this sentence for searching relevant passages:'),
+  EMBED_CACHE_DIR: absolutePath.optional(),
+  EMBED_TIMEOUT_SECONDS: int('300', 1, 3600),
+
   AUDIT_RETENTION_DAYS: int('365', 1, 3650),
   BACKUP_STALE_DAYS: int('7', 0, 3650),
 });
@@ -206,6 +223,18 @@ export function loadConfig(env = process.env) {
           body: v.SEARCH_WEIGHT_BODY,
         },
       },
+      embed: {
+        provider: v.EMBED_PROVIDER,
+        enabled: v.EMBED_PROVIDER !== 'none',
+        model: v.EMBED_MODEL,
+        dtype: v.EMBED_DTYPE,
+        dimensions: v.EMBED_DIMENSIONS,
+        pooling: v.EMBED_POOLING,
+        docPrefix: v.EMBED_DOC_PREFIX,
+        queryPrefix: v.EMBED_QUERY_PREFIX,
+        cacheDir: v.EMBED_CACHE_DIR ?? path.join(v.DATA_DIR, 'embed-cache'),
+        timeoutSeconds: v.EMBED_TIMEOUT_SECONDS,
+      },
       retention: { auditDays: v.AUDIT_RETENTION_DAYS, backupStaleDays: v.BACKUP_STALE_DAYS },
     },
   };
@@ -228,6 +257,7 @@ export function summarize(config) {
     `data dir        ${config.paths.data}`,
     `sessions        idle ${config.session.idleMinutes} min, max ${config.session.maxHours} h, secure cookie: ${config.session.cookieSecure} (secret ${set(config.session.secret)})`,
     `AI provider     ${config.ai.provider}, model ${config.ai.model || '<unset>'} (key ${set(config.ai.apiKey)})`,
+    `vector search  ${config.embed.enabled ? `${config.embed.provider}, model ${config.embed.model} (${config.embed.dimensions} dimensions, ${config.embed.pooling} pooling)` : 'off'}`,
     `upload cap      ${config.uploads.maxBytes} bytes`,
   ];
 }

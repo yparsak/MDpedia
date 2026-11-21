@@ -7,7 +7,7 @@ A Markdown wiki for a Raspberry Pi: math rendering, keyword search, and AI-assis
 - `db/README.md`: the SQL workflow.
 - `samples/README.md`: the test fixtures.
 
-## Quick start (through Phase 10)
+## Quick start (through Phase 11)
 
 ```bash
 cp .env.example .env     # fill in DB_PASSWORD and SESSION_SECRET (openssl rand -hex 32)
@@ -16,7 +16,7 @@ mkdir -p /srv/MDpedia-data/docs /srv/MDpedia-data/staging   # your DOCS_DIR and 
 make env-check
 make install
 make migrate-status
-make migrate      # applies 000 to 010 (takes a dump first)
+make migrate      # applies 000 to 012 (takes a dump first; 011 and 012 need MariaDB 11.7 or later)
 make admin        # creates the admin; also resets the password
 make start
 ```
@@ -105,6 +105,14 @@ Then open `http://<pi-address>:3000/admin` and log in.
   category editor has optional drag-and-drop (SortableJS). `docs/OPERATIONS.md` has the release, backup, restore and
   warning-handling steps. `make test` rebuilds `MDpedia_test` and runs the tests against it (the database tests refuse any
   name that does not end in `_test`); `make check-raw-tags` fails on any `<%-` that is not reviewed.
+- Vector search (Phase 11, an admin-only learning lab): with `EMBED_PROVIDER=transformersjs` the model
+  `bge-small-en-v1.5` runs inside the Node process, in a worker thread (`@huggingface/transformers`, downloaded on first use
+  into `EMBED_CACHE_DIR`). Each published document gets one vector, made from its title, summary, keywords and questions and
+  stored in MariaDB's `VECTOR(384)` column (`doc_vectors`). Vectors are queued as `embed` jobs when a document is approved,
+  replaced or its title, summary or keywords change, and `/admin/vectors` has "Rebuild all vectors". The lab shows the nearest
+  documents for a query with the cosine distance, the SQL, the query plan and the time, as an exact scan, through the
+  vector index (`012_vector_index`), or both. `/admin/vectors/compare` shows keyword and vector results side by side and
+  scores the Phase 4 test set both ways. Readers never trigger embedding; nothing public uses vectors.
 - `/admin/status` is the Phase 0 status page (it was `/` before Phase 2). `/healthz` is the public health probe.
 - Each document is stored as `<slug>.md` in `DOCS_DIR`, with `id`, `slug`, `title`,
   `published`, `categories` (ids) and, when set, `keywords`, `key_phrases`, `synonyms` and `questions` in its front matter. The file is canonical; the database is an index.

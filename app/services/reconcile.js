@@ -23,6 +23,7 @@ import { log, errorFields } from '../logger.js';
 import { recordAudit } from './audit.js';
 import { loadTree } from './categories.js';
 import { listDocFiles, readDocFileText } from './docfiles.js';
+import { enqueueEmbedding } from './embed-queue.js';
 import { bodyHash, parseFrontMatter } from './frontmatter.js';
 import { cleanupStaged } from './replace.js';
 import { formatTermForm, getDocTerms, insertTerms, termsFromFrontMatter } from './search-terms.js';
@@ -131,6 +132,8 @@ async function syncDoc(pool, config, tree, doc, file) {
     conn.release();
   }
   if (titleChanged && doc.published) await rerenderDependents(pool, config, { ...doc, title });
+  // A file edited over SSH: the vector is made from the title, summary and terms.
+  if (titleChanged || summaryChanged || termsChanged) await enqueueEmbedding(pool, config, doc.id);
   return bodyChanged || titleChanged || summaryChanged || termsChanged ? 'updated' : 'unchanged';
 }
 

@@ -2,10 +2,8 @@ import { Router } from 'express';
 import multer from 'multer';
 import { verifyCsrf } from '../middleware/admin-session.js';
 import { recordAudit } from '../services/audit.js';
-import { EVAL_MAX_QUERIES, TOP_N, parseTestSet, runEvaluation } from '../services/search-eval.js';
+import { EVAL_MAX_BYTES, EVAL_MAX_QUERIES, TOP_N, parseTestSet, runEvaluation } from '../services/search-eval.js';
 import { MIN_SEARCHES, MISS_THRESHOLD, searchReport } from '../services/search-log.js';
-
-const EVAL_MAX_BYTES = 256 * 1024;
 
 // The admin side of search (roadmap Phase 4): the miss report built from the
 // search log, and the evaluation page that runs a test set against the index.

@@ -147,6 +147,10 @@ If only the dump is lost, restore the documents and categories from the drive an
 
 The maintenance job runs at start and every six hours, and `/admin/maintenance` runs it by hand. It removes: search-log rows older than `SEARCH_LOG_RETENTION_DAYS` (default 90; the per-day totals in `search_daily` stay), audit entries older than `AUDIT_RETENTION_DAYS` (default 365), and finished (done) jobs older than `JOB_RETENTION_DAYS` (default 30; failed jobs stay until dismissed). Each task's last run, trigger, result and row count are kept in `maintenance_runs` and shown on the page; a manual run is written to the audit log.
 
+### Vector search (Phase 11)
+
+Off unless `EMBED_PROVIDER=transformersjs`. The model downloads from Hugging Face on first use into `EMBED_CACHE_DIR` (default `DATA_DIR/embed-cache`, inside the data directory the hardened service may write). The Pi needs outbound access to Hugging Face once. The cache is disposable and is not backed up; the vectors themselves are in the database dump. Check free memory (`free -h`) with MariaDB and the wiki running before enabling it. `doc_vectors` needs MariaDB 11.7 or later. After changing `EMBED_MODEL`, `EMBED_DTYPE`, `EMBED_POOLING` or `EMBED_DOC_PREFIX`, press "Rebuild all vectors" on `/admin/vectors`.
+
 ## 8. Tests
 
 - `make test`: drops and rebuilds `MDpedia_test` from the migrations (`make test-db-reset`), then runs `npm test` against it with `TEST_DB_NAME=MDpedia_test`. This is the full run.

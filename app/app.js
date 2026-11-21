@@ -12,7 +12,7 @@ import { searchRouter } from './routes/search.js';
 const appDir = path.dirname(fileURLToPath(import.meta.url));
 const { version } = JSON.parse(fs.readFileSync(path.join(appDir, '..', 'package.json'), 'utf8'));
 
-export function createApp({ config, pool, loops = null }) {
+export function createApp({ config, pool, loops = null, embedder = null }) {
   const app = express();
 
   app.set('view engine', 'ejs');
@@ -70,7 +70,7 @@ export function createApp({ config, pool, loops = null }) {
   app.use(statusRouter({ pool, loops }));
   app.use(readerRouter({ pool }));
   app.use(searchRouter({ pool, config }));
-  app.use('/admin', adminRouter({ pool, config, version }));
+  app.use('/admin', adminRouter({ pool, config, version, embedder }));
 
   app.use((req, res) => {
     res.status(404).render('404', { title: 'Page not found' });

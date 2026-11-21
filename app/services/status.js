@@ -5,7 +5,7 @@
 const PROBE_TIMEOUT_MS = 5000;
 
 // Add one entry per phase, in order. The version is the file name without .sql.
-export const EXPECTED_MIGRATIONS = ['000_schema_migrations', '001_admin', '002_documents', '003_categories', '004_search', '005_links', '006_ai', '007_review', '008_replace', '009_bulk_edit', '010_operations'];
+export const EXPECTED_MIGRATIONS = ['000_schema_migrations', '001_admin', '002_documents', '003_categories', '004_search', '005_links', '006_ai', '007_review', '008_replace', '009_bulk_edit', '010_operations', '011_vectors', '012_vector_index'];
 
 const versionNumber = (name) => Number.parseInt(name.split('_')[0], 10);
 
