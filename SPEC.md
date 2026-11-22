@@ -7,8 +7,6 @@ Related documents:
 - [docs/OPERATIONS.md](docs/OPERATIONS.md): service install, release, backup, restore and warning handling in full
 - [db/README.md](db/README.md): the SQL workflow
 - [samples/README.md](samples/README.md): the test fixtures
-- [roadmap.md](roadmap.md): the build order and per-phase test checklists
-- [mdpedia-project-brainstorm.md](mdpedia-project-brainstorm.md): the decision log
 
 ## 1. Overview
 
