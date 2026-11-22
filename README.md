@@ -1,121 +1,71 @@
+<p align="center">
+  <img src="logo.png" alt="MDpedia logo" width="200">
+</p>
+
 # MDpedia
 
-A Markdown wiki for a Raspberry Pi: math rendering, keyword search, and AI-assisted metadata.
+**A private, self-hosted wiki for your Markdown notes, with search that actually finds things.**
 
-- `roadmap.md`: the build order and the test checklist for each phase.
-- `mdpedia-project-brainstorm.md`: the decision log behind it.
-- `db/README.md`: the SQL workflow.
-- `samples/README.md`: the test fixtures.
+MDpedia turns a folder of Markdown files into a clean, searchable knowledge base that you own and run yourself. Write in plain text, upload your files, and let an optional AI assistant do the tedious filing: it reads each document and suggests a summary, keywords and categories. You stay in control and review everything before readers see it.
 
-## Quick start (through Phase 11)
+## Why MDpedia?
 
-```bash
-cp .env.example .env     # fill in DB_PASSWORD and SESSION_SECRET (openssl rand -hex 32)
-chmod 600 .env
-mkdir -p /srv/MDpedia-data/docs /srv/MDpedia-data/staging   # your DOCS_DIR and STAGING_DIR: one filesystem, writable by the app user
-make env-check
-make install
-make migrate-status
-make migrate      # applies 000 to 012 (takes a dump first; 011 and 012 need MariaDB 11.7 or later)
-make admin        # creates the admin; also resets the password
-make start
-```
+**Your files stay yours.**
+Every document is a plain `.md` file on your own disk. There is no proprietary format and no lock-in. If you ever stop using MDpedia, your content is already in a format every tool understands.
 
-Optional, for a starting category tree: `cp db/seed/categories_seed.example.sql db/seed/categories_seed.sql`,
-edit it, then `make seed-categories`.
+**Nothing is published by accident.**
+New uploads are private until an admin approves them. The AI only makes suggestions. It never publishes anything, never creates categories on its own, and is only allowed to add to your text, never rewrite it.
 
-Then open `http://<pi-address>:3000/admin` and log in.
+**Readers get a fast, simple site.**
+Visitors need no account and see no clutter. They search, browse by category, and follow links between documents. Search does not call any outside AI service while a reader is using it, so it is quick, private and costs nothing per search.
 
-- Readers: `/` lists published documents and the top-level categories. A document lives at
-  `/wiki/<category path>/<slug>` (just `/wiki/<slug>` with no category); `/doc?id=<id>` redirects to
-  it, and so does a stale path. `/category/<path>` browses a category like a folder.
-- Admin: `/admin/docs` lists documents, `/admin/docs/new` uploads one. A new upload
-  is saved unpublished; open it, check the preview, and publish it.
-- Categories: `/admin/categories` is the tree editor (at most three levels). A document gets up
-  to three categories on its admin page, the first being the primary; they are saved in its front
-  matter as ids. `categories.yaml` in `DATA_DIR` is rewritten on every change.
-- Search: the box in every page header sends a plain GET to `/search?q=...`. Words match as prefixes,
-  `"quoted phrases"` stay together, and all words are required first; with fewer than
-  `SEARCH_PARTIAL_THRESHOLD` such results it falls back to any word and says "partial matches".
-  Title, summary, body and the doc's keywords, key phrases, synonyms and questions are searched, weighted
-  by `SEARCH_WEIGHT_*` (0 switches a source off). Each doc's keywords are edited on its admin page and
-  saved in its front matter. `RATE_SEARCH_PER_MIN` limits searches per IP.
-- Search tuning: `/admin/search` reports zero-result and no-click queries over 30 days (the log keeps
-  no IP or session and is pruned after `SEARCH_LOG_RETENTION_DAYS`); `/admin/search/eval` runs a test
-  set (template: `db/seed/search_test_set.example.json`) and reports the zero-result rate and how often
-  the expected doc is in the top 3.
-- Wiki links: `[[slug]]` and `[[slug|display text]]` link one document to another. The target is trimmed
-  and lowercased, and matched against the slug (never the title). A link to a published doc becomes
-  `/doc?id=<id>` and shows the target's title unless display text is given. A link to a doc that does not
-  exist, or is not published, is drawn as a marked dead span for everyone and never shows the title.
-  `[[links]]` inside code spans, code blocks and Markdown links are left alone. The HTML is stored, so
-  publishing, unpublishing or retitling a doc renders the docs that link to it again (at most 200).
-  Each published doc lists "What links here". `/admin/links` and the dashboard report unresolved links,
-  and a doc's admin page shows its own links. The admin lists show each slug with a Copy button, and a
-  `slug:` in the front matter of an upload is used when it is free.
-- AI extraction: with `AI_BASE_URL`, `AI_API_KEY` and `AI_MODEL` set (any OpenAI-compatible Chat Completions
-  endpoint), an upload is queued and moves Uploaded, Processing, Ready for review. The worker runs in the
-  web process and fills the doc's keywords, key phrases, synonyms, questions and summary (a hand-edited
-  summary is kept), stores suggested categories and proposals for new ones (neither is applied), and writes
-  an `ai:` block (provider, model, prompt version, date) to the front matter. Limits: `AI_CALL_TIMEOUT_SECONDS`,
-  `AI_MAX_ATTEMPTS` (transient errors only, with backoff), `AI_DAILY_CAP` (every call counts), `AI_CONCURRENCY`,
-  `AI_CIRCUIT_BREAKER_FAILURES` (the queue then pauses until you press Resume) and `AI_MAX_TOKENS`.
-  Jobs left running by a crash are re-queued at startup; finished jobs are deleted after `JOB_RETENTION_DAYS`.
-  With the AI not configured, uploads skip the queue and are "Ready for review" at once.
-- AI pages: `/admin/ai` (AI Lab: test the connection, run the model over a doc or a file and see the
-  validated output; nothing is saved) and `/admin/jobs` (queue, retry, dismiss, resume). The dashboard shows
-  calls used today and a banner when the queue is paused.
-- Review and approval: nothing is visible to readers until you approve it. `/admin/review` is the queue
-  (documents awaiting review, an "Unpublished" filter, pending category proposals, failed jobs). A document's
-  review screen (`/admin/review/<id>`) edits the AI's summary, keywords, synonyms and questions, picks up to
-  three categories (the first is primary) and accepts, renames or rejects proposed new categories; approving
-  writes the categories and `published: true` to the front matter and publishes. "Approve selected" and
-  "Approve all ready" list what they will approve first and hold back documents with exceptions (undecided
-  proposals, unresolved links, raw HTML, oversize). A `categories: [math/calculus]` line in an upload files
-  the document under a category that exists (paths are slugs joined with `/`); anything unmatched becomes a
-  proposal and is never created automatically.
-- Bulk import: `/admin/import` takes many `.md` files (up to `BULK_MAX_FILES`), asks you to confirm the number
-  of AI calls (granting a one-time allowance above `AI_DAILY_CAP` if needed), then imports them with `-2`
-  style suffixes for taken slugs. A file that fails (oversize, bad encoding, bad front matter) is skipped and
-  listed in the import report, which also shows each document's slug and exceptions.
-- Replace: a document's page has "Replace this document" (`/admin/replace/<id>`). The upload is staged in
-  `STAGING_DIR` as `replace-<id>.md` and must have no `id`/`slug` in its front matter, or the same ones. Readers
-  keep seeing the old version while the AI refreshes the keywords (categories carry over; a hand-edited summary
-  is kept). Approving swaps the file into place and updates the database in one transaction. A staged version
-  nobody approves is removed after `STAGED_RETENTION_DAYS`.
-- Bulk AI edit: `/admin/edit` takes an instruction and a scope (a category with its subcategories, named
-  documents, or both; published only unless ticked). A dry run lists the documents, the AI calls, the room under
-  `AI_DAILY_CAP` and the backup age; confirming starts one `edit` job per document (at most `BULK_EDIT_MAX_DOCS`).
-  The AI may only add: a result that alters the original text, fails the upload checks or fails the model's own
-  check (retried at most `BULK_EDIT_MAX_RETRIES` times) marks the document "needs attention". A good result is
-  a staged version (as in Replace), shown as a side-by-side diff to approve, edit by hand and approve, or reject.
-  Batches can be stopped, and failed documents retried. `make mock-ai` runs a stand-in provider for testing.
-- Reconciliation: the files win. At startup and every `RECONCILE_INTERVAL_MINUTES` (and on "Rescan now") the
-  docs directory is compared with the database by size and modified time, then body hash. Invalid front
-  matter, a changed `id` or `slug`, or a missing file marks the document on `/admin/attention` while readers keep
-  the last good version; a second file claiming an existing `id` or `slug` is rejected and listed there.
-  A scan applies body, title, summary and search terms; `published` and `categories` stay under app control.
-- Operations (Phase 10): `make backup` (`scripts/backup.sh`) copies the docs, `categories.yaml` and a database dump to the
-  external drive at `BACKUP_TARGET`, and refuses to run when the drive is not mounted; the dashboard shows "last backup:
-  N days ago" with a warning from `BACKUP_STALE_DAYS`, and the same age appears before bulk import, bulk approve, bulk
-  AI edits, retrying failed AI jobs and category changes. `/admin/maintenance` shows the backup status and the pruning
-  tasks (search log over `SEARCH_LOG_RETENTION_DAYS`, audit log over `AUDIT_RETENTION_DAYS`, finished jobs over
-  `JOB_RETENTION_DAYS`), which also run at start and every six hours. `/healthz` is 200 only when the database answers
-  and the worker loop is alive. `deploy/` holds the systemd unit, the journald size cap and the firewall steps; the
-  category editor has optional drag-and-drop (SortableJS). `docs/OPERATIONS.md` has the release, backup, restore and
-  warning-handling steps. `make test` rebuilds `MDpedia_test` and runs the tests against it (the database tests refuse any
-  name that does not end in `_test`); `make check-raw-tags` fails on any `<%-` that is not reviewed.
-- Vector search (Phase 11, an admin-only learning lab): with `EMBED_PROVIDER=transformersjs` the model
-  `bge-small-en-v1.5` runs inside the Node process, in a worker thread (`@huggingface/transformers`, downloaded on first use
-  into `EMBED_CACHE_DIR`). Each published document gets one vector, made from its title, summary, keywords and questions and
-  stored in MariaDB's `VECTOR(384)` column (`doc_vectors`). Vectors are queued as `embed` jobs when a document is approved,
-  replaced or its title, summary or keywords change, and `/admin/vectors` has "Rebuild all vectors". The lab shows the nearest
-  documents for a query with the cosine distance, the SQL, the query plan and the time, as an exact scan, through the
-  vector index (`012_vector_index`), or both. `/admin/vectors/compare` shows keyword and vector results side by side and
-  scores the Phase 4 test set both ways. Readers never trigger embedding; nothing public uses vectors.
-- `/admin/status` is the Phase 0 status page (it was `/` before Phase 2). `/healthz` is the public health probe.
-- Each document is stored as `<slug>.md` in `DOCS_DIR`, with `id`, `slug`, `title`,
-  `published`, `categories` (ids) and, when set, `keywords`, `key_phrases`, `synonyms` and `questions` in its front matter. The file is canonical; the database is an index.
-- In documents, write currency as `\$5`: a bare `$` starts an equation.
+**Great for technical and mathematical writing.**
+Equations written in LaTeX (`$E = mc^2$`) display beautifully, and code blocks are syntax highlighted.
 
-Run `make` with no argument for every target.
+**AI that helps, but is optional.**
+Connect any OpenAI-compatible AI service and MDpedia will prepare keywords, summaries and category suggestions for you. Leave it off and everything still works; you simply fill in the details by hand. Daily call limits and an automatic safety switch keep costs and surprises in check.
+
+**Built to be safe and low-maintenance.**
+Built-in backups, health checks, activity logs and automatic clean-up keep it tidy. Content is sanitized before display, admin actions are logged, and login attempts are rate limited.
+
+## What you can do with it
+
+| For readers | For administrators |
+|---|---|
+| Search across titles, summaries, keywords and full text | Upload one document or hundreds at once |
+| Browse documents by category, like folders | Review AI suggestions and approve with one click |
+| Jump between related documents with `[[wiki links]]` | Organise documents in a category tree (up to three levels) |
+| See "What links here" on every page | Replace a document and review a side-by-side comparison before it goes live |
+| Read math and code beautifully formatted | Ask the AI to improve many documents at once, and approve each change |
+| | See what people search for and what they fail to find |
+| | Spot broken links, damaged files and failed jobs from one dashboard |
+
+## Features at a glance
+
+- **Markdown with math and code**: tables, task lists, LaTeX equations and highlighted code
+- **Smart search**: weighted keyword search with phrase support and automatic fallback to partial matches
+- **Wiki-style linking** between documents, with broken-link detection
+- **AI-assisted metadata** (optional): summaries, keywords, synonyms, questions and category suggestions
+- **Review and approval workflow** so you decide what goes live
+- **Bulk import and bulk AI editing** with a preview of the cost before anything runs
+- **Safe updates**: readers keep seeing the old version until you approve the new one
+- **Files are the source of truth**: edit a file directly and MDpedia notices and keeps up
+- **Backups, health monitoring and automatic housekeeping**
+- **Experimental semantic (vector) search** for administrators, running entirely on your own machine
+
+## Who is it for?
+
+- Individuals and small teams who want a personal or internal knowledge base
+- Anyone who writes in Markdown and wants a proper home for it
+- Students, engineers and researchers with notes full of formulas and code
+- People who would rather host their own data than hand it to a cloud service
+
+## Getting started
+
+MDpedia runs on any small Linux server you control. Setup takes a handful of commands, and a first document can be live within minutes.
+
+Installation, configuration, maintenance and architecture are all covered in the **[technical specification (SPEC.md)](SPEC.md)**.
+
+## Status
+
+MDpedia is feature-complete for its first version. Planned improvements, such as images, version history and HTTPS, are tracked in **[TODO_LIST.md](TODO_LIST.md)**.
