@@ -88,17 +88,25 @@ const FORBIDDEN_TAGS = ['script', 'iframe', 'object', 'embed', 'style', 'form', 
 // Fails if the HTML holds anything executable or fetchable. Raw HTML in the
 // input is shown as escaped text (`&#x3C;script>`), so these checks look at real
 // tags only: the text of the page may legitimately say "onerror=" or "javascript:".
+// A start tag, with quoted attribute values kept whole: a value may hold < and >
+// (serializers leave them unescaped inside quotes), and that is still inert.
+const START_TAG = /<[a-z](?:"[^"]*"|'[^']*'|[^<>"'])*>/gi;
+const withoutValues = (tag) => tag.replace(/"[^"]*"|'[^']*'/g, '""');
+
 function assertInert(html, label) {
   assert.equal(typeof html, 'string', label);
+  // Quoted values are blanked so text inside an attribute is not read as markup.
+  const markup = html.replace(START_TAG, withoutValues);
   for (const tag of FORBIDDEN_TAGS) {
-    assert.doesNotMatch(html, new RegExp(`<${tag}[\\s>/]`, 'i'), `${label}: <${tag}> in the output`);
+    assert.doesNotMatch(markup, new RegExp(`<${tag}[\\s>/]`, 'i'), `${label}: <${tag}> in the output`);
   }
-  assert.doesNotMatch(html, /<svg[^>]*\son[a-z]+\s*=/i, `${label}: an svg with an event handler`);
-  assert.doesNotMatch(html, /<svg[^>]*>\s*<script/i, `${label}: a script inside an svg`);
+  assert.doesNotMatch(markup, /<svg[^>]*\son[a-z]+\s*=/i, `${label}: an svg with an event handler`);
+  assert.doesNotMatch(markup, /<svg[^>]*>\s*<script/i, `${label}: a script inside an svg`);
 
-  for (const [tag] of html.matchAll(/<[a-z][^<>]*>/gi)) {
-    assert.doesNotMatch(tag, /\son[a-z]+\s*=/i, `${label}: an event-handler attribute in ${tag}`);
-    assert.doesNotMatch(tag, /\s(src|srcdoc|action|formaction|xlink:href|data|poster|background)\s*=/i, `${label}: a fetching attribute in ${tag}`);
+  for (const [tag] of html.matchAll(START_TAG)) {
+    const bare = withoutValues(tag);
+    assert.doesNotMatch(bare, /\son[a-z]+\s*=/i, `${label}: an event-handler attribute in ${tag}`);
+    assert.doesNotMatch(bare, /\s(src|srcdoc|action|formaction|xlink:href|data|poster|background)\s*=/i, `${label}: a fetching attribute in ${tag}`);
     for (const style of tag.matchAll(/\sstyle\s*=\s*"([^"]*)"/gi)) {
       assert.doesNotMatch(style[1], /url\(|expression\(|@import|javascript:/i, `${label}: a dangerous style in ${tag}`);
     }
