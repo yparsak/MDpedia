@@ -180,7 +180,21 @@ Modify dotenv
 
 ```bash
 # Modify /$HOME/src/MDpedia/.env
-chmod 600 .env
+HOST=YOUR_HOST_NAME or IP
+PORT=3000
+
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_NAME=MDpedia
+DB_USER=MDpedia
+DB_PASSWORD=YOUR_DB_PASSWORD
+
+SESSION_SECRET=YOUR_SESSION_SECRET
+AI_API_KEY=YOUR_API_KEY
+```
+
+```bash
+chmod 600 /$HOME/src/MDpedia/.env
 ```
 
 Install
