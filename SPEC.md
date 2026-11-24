@@ -179,7 +179,7 @@ EXIT;
 Modify dotenv
 
 ```bash
-# Modify /HOME$/src/MDpedia/.env
+# Modify /$HOME/src/MDpedia/.env
 chmod 600 .env
 ```
 
