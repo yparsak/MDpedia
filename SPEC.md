@@ -150,14 +150,42 @@ Create the database and user as the MariaDB admin (full statements in [db/README
 
 ### 5.3 Application
 
+Download and install:
+
 ```bash
 curl -fsSL https://raw.githubusercontent.com/yparsak/MDpedia/main/install.sh -o /tmp/install.sh
 bash /tmp/install.sh
 ```
 
+Create Database
+
+```bash
+CREATE DATABASE IF NOT EXISTS MDpedia      CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE DATABASE IF NOT EXISTS MDpedia_test CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+CREATE USER IF NOT EXISTS 'MDpedia'@'localhost';
+ALTER USER 'MDpedia'@'localhost' IDENTIFIED BY 'YOUR_DB_PASSWORD';
+CREATE USER IF NOT EXISTS 'MDpedia'@'127.0.0.1';
+ALTER USER 'MDpedia'@'127.0.0.1' IDENTIFIED BY 'YOUR_DB_PASSWORD';
+
+GRANT ALL PRIVILEGES ON MDpedia.*      TO 'MDpedia'@'localhost';
+GRANT ALL PRIVILEGES ON MDpedia_test.* TO 'MDpedia'@'localhost';
+GRANT ALL PRIVILEGES ON MDpedia.*      TO 'MDpedia'@'127.0.0.1';
+GRANT ALL PRIVILEGES ON MDpedia_test.* TO 'MDpedia'@'127.0.0.1';
+FLUSH PRIVILEGES;
+EXIT;
+```
+
+Modify dotenv
+
 ```bash
 # Modify /HOME$/src/MDpedia/.env
 chmod 600 .env
+```
+
+Install
+
+```bash
 mkdir -p /srv/MDpedia-data/docs /srv/MDpedia-data/staging   # DOCS_DIR and STAGING_DIR, writable by the app user
 make env-check
 make install
