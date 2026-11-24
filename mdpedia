@@ -1,0 +1,124 @@
+#!/usr/bin/env bash
+# Start, stop and check MDpedia on a dev machine:   ./mdpedia start|stop|restart|status|logs
+#
+# The app writes JSON lines to stdout (app/logger.js), and on the Pi systemd and
+# journald collect them (deploy/wiki.service). This script is the stand-in where
+# there is no systemd: it sends that output to logs/mdpedia.log and keeps the
+# process id in logs/mdpedia.pid. Do not use it on the Pi, where the log file
+# would write to the SD card. The *.log files are ignored by git.
+
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+LOG_DIR="$ROOT/logs"
+LOG_FILE="$LOG_DIR/mdpedia.log"
+PID_FILE="$LOG_DIR/mdpedia.pid"
+MAX_LOG_BYTES=$((5 * 1024 * 1024))
+STOP_WAIT_SECONDS=10
+
+cd "$ROOT"
+
+# PORT and HOST come from .env, as they do for the app. Read only those two lines
+# so nothing else in the file is evaluated.
+env_value() {
+  local value
+  value="$(sed -n "s/^$1=//p" "$ROOT/.env" 2>/dev/null | tail -n 1 | tr -d "\"' \r")"
+  printf '%s' "${value:-$2}"
+}
+
+running_pid() {
+  [[ -f "$PID_FILE" ]] || return 1
+  local pid
+  pid="$(<"$PID_FILE")"
+  [[ "$pid" =~ ^[0-9]+$ ]] && kill -0 "$pid" 2>/dev/null || return 1
+  printf '%s' "$pid"
+}
+
+cmd_start() {
+  local pid
+  if pid="$(running_pid)"; then
+    echo "MDpedia is already running (pid $pid)."
+    return 0
+  fi
+  command -v node >/dev/null || { echo "node was not found on PATH." >&2; return 1; }
+  [[ -d node_modules ]] || { echo "node_modules is missing. Run: npm install" >&2; return 1; }
+  [[ -f .env ]] || { echo ".env is missing. Copy .env.example and fill it in." >&2; return 1; }
+
+  mkdir -p "$LOG_DIR"
+  # One old log is kept; the app logs every request, so the file grows.
+  if [[ -f "$LOG_FILE" && "$(wc -c <"$LOG_FILE")" -gt "$MAX_LOG_BYTES" ]]; then
+    mv "$LOG_FILE" "$LOG_FILE.1"
+  fi
+
+  nohup node app/server.js >>"$LOG_FILE" 2>&1 &
+  echo $! >"$PID_FILE"
+  disown
+
+  # The server exits at once on a bad config or a port in use, so wait briefly.
+  sleep 1.5
+  if pid="$(running_pid)"; then
+    echo "MDpedia started (pid $pid) on port $(env_value PORT 3000). Log: $LOG_FILE"
+  else
+    rm -f "$PID_FILE"
+    echo "MDpedia failed to start. Last log lines:" >&2
+    tail -n 15 "$LOG_FILE" >&2
+    return 1
+  fi
+}
+
+cmd_stop() {
+  local pid waited=0
+  if ! pid="$(running_pid)"; then
+    rm -f "$PID_FILE"
+    echo "MDpedia is not running."
+    return 0
+  fi
+  kill "$pid"
+  while kill -0 "$pid" 2>/dev/null; do
+    if ((waited >= STOP_WAIT_SECONDS * 10)); then
+      echo "Did not stop after ${STOP_WAIT_SECONDS}s, sending SIGKILL." >&2
+      kill -9 "$pid" 2>/dev/null || true
+      break
+    fi
+    sleep 0.1
+    waited=$((waited + 1))
+  done
+  rm -f "$PID_FILE"
+  echo "MDpedia stopped."
+}
+
+cmd_status() {
+  local pid port host url
+  if ! pid="$(running_pid)"; then
+    echo "MDpedia is not running."
+    return 3
+  fi
+  port="$(env_value PORT 3000)"
+  host="$(env_value HOST 127.0.0.1)"
+  [[ "$host" == "0.0.0.0" ]] && host=127.0.0.1
+  url="http://$host:$port/healthz"
+  echo "MDpedia is running (pid $pid), up $(ps -o etime= -p "$pid" | tr -d ' ')."
+  echo "Log: $LOG_FILE"
+  if command -v curl >/dev/null; then
+    if curl -fsS --max-time 3 -o /dev/null "$url"; then
+      echo "Health: ok ($url)"
+    else
+      echo "Health: not answering ($url)" >&2
+      return 1
+    fi
+  fi
+}
+
+cmd_logs() {
+  [[ -f "$LOG_FILE" ]] || { echo "No log yet: $LOG_FILE" >&2; return 1; }
+  tail -n 50 -f "$LOG_FILE"
+}
+
+case "${1:-}" in
+  start) cmd_start ;;
+  stop) cmd_stop ;;
+  restart) cmd_stop; cmd_start ;;
+  status) cmd_status ;;
+  logs) cmd_logs ;;
+  *) echo "Usage: ./mdpedia start|stop|restart|status|logs" >&2; exit 2 ;;
+esac

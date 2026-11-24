@@ -1,7 +1,7 @@
 // The rendering pipeline on the inputs that matter most: math, and hostile markup.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { firstHeading, renderMarkdown } from '../app/services/markdown.js';
+import { convertLatexDelimiters, firstHeading, renderMarkdown } from '../app/services/markdown.js';
 
 const render = (body, title = 'Test') => renderMarkdown(body, { title });
 
@@ -73,4 +73,32 @@ test('the plain text leaves math out', async () => {
 test('firstHeading ignores headings inside code fences', () => {
   assert.equal(firstHeading('```\n# not this\n```\n\n# This one\n'), 'This one');
   assert.equal(firstHeading('no heading here'), null);
+});
+
+test('\\[ \\] renders as display math and \\( \\) as inline math', async () => {
+  const block = await render('\\[\n\\lim_{x\\to a} f(x)\n\\]\n');
+  assert.match(block.html, /katex-display/);
+  assert.doesNotMatch(block.html, /\\\[|\\\]/);
+  const oneLine = await render('\\[ x^2 \\]\n');
+  assert.match(oneLine.html, /katex-display/);
+  const inline = await render('Let \\(x^2\\) be small.');
+  assert.match(inline.html, /class="katex"/);
+  assert.doesNotMatch(inline.html, /katex-display/);
+});
+
+test('LaTeX delimiters inside code are left alone', () => {
+  assert.equal(convertLatexDelimiters('`\\[x\\]`'), '`\\[x\\]`');
+  assert.equal(convertLatexDelimiters('```\n\\[\nx\n\\]\n```'), '```\n\\[\nx\n\\]\n```');
+  assert.equal(convertLatexDelimiters('~~~tex\n\\(x\\)\n~~~\n\\(y\\)'), '~~~tex\n\\(x\\)\n~~~\n$y$');
+});
+
+test('an escaped backslash or an unmatched delimiter is not converted', () => {
+  assert.equal(convertLatexDelimiters('a \\\\[b] c'), 'a \\\\[b] c');
+  assert.equal(convertLatexDelimiters('open \\[ only'), 'open \\[ only');
+  assert.equal(convertLatexDelimiters('\\[a\n\nb\\]'), '\\[a\n\nb\\]');
+});
+
+test('display math keeps its list or quote prefix', () => {
+  assert.equal(convertLatexDelimiters('> \\[ x \\]'), '> $$\n> x\n> $$');
+  assert.equal(convertLatexDelimiters('a \\[x\\] b'), 'a $$x$$ b');
 });

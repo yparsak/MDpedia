@@ -256,6 +256,61 @@ const processor = unified()
   .use(rehypeHighlight, { detect: false, ignoreMissing: true })
   .use(rehypeStringify);
 
+// LaTeX-style delimiters, \[ ... \] and \( ... \), are rewritten to the $$ and $
+// that remark-math understands (CommonMark would otherwise eat the backslash as an
+// escape). Fenced code and inline code spans are left alone, and a doubled
+// backslash is skipped so \\[ stays a literal backslash followed by [.
+const FENCE_OPEN = /^ {0,3}(`{3,}|~{3,})/;
+// Alternatives: 1 inline code span, an escaped backslash (both kept as is),
+// 2 \[ display \] (no blank line inside), 3 \( inline \).
+const LATEX_DELIMITED =
+  /(?<!`)(`+)(?!`)[\s\S]*?(?<!`)\1(?!`)|\\\\|\\\[((?:(?!\\\])(?!\n[ \t>]*\n)[\s\S])+)\\\]|\\\(([^\n]+?)\\\)/g;
+
+function convertLatexChunk(chunk) {
+  return chunk.replace(LATEX_DELIMITED, (match, _ticks, display, inline, offset, whole) => {
+    if (inline !== undefined) return `$${inline.trim()}$`;
+    if (display === undefined) return match;
+    const lineStart = whole.lastIndexOf('\n', offset - 1) + 1;
+    const prefix = whole.slice(lineStart, offset);
+    const lineEnd = whole.indexOf('\n', offset + match.length);
+    const rest = whole.slice(offset + match.length, lineEnd === -1 ? undefined : lineEnd);
+    // Alone on its lines: a display block. Inside a sentence: $$ ... $$ inline.
+    if (/^[ \t>]*$/.test(prefix) && rest.trim() === '') {
+      return `$$\n${prefix}${display.trim()}\n${prefix}$$`;
+    }
+    return `$$${display.trim()}$$`;
+  });
+}
+
+export function convertLatexDelimiters(body) {
+  if (!body.includes('\\[') && !body.includes('\\(')) return body;
+  const out = [];
+  let chunk = [];
+  let fence = null;
+  const flush = () => {
+    if (chunk.length) out.push(convertLatexChunk(chunk.join('\n')));
+    chunk = [];
+  };
+  for (const line of body.split('\n')) {
+    if (fence) {
+      out.push(line);
+      const close = line.match(/^ {0,3}(`{3,}|~{3,})\s*$/);
+      if (close && close[1][0] === fence[0] && close[1].length >= fence.length) fence = null;
+      continue;
+    }
+    const open = line.match(FENCE_OPEN);
+    if (open && !(open[1][0] === '`' && line.slice(open[0].length).includes('`'))) {
+      flush();
+      fence = open[1];
+      out.push(line);
+    } else {
+      chunk.push(line);
+    }
+  }
+  flush();
+  return out.join('\n');
+}
+
 // Parse only, for the title precedence rule (form, front matter, first H1, file name).
 const parser = unified().use(remarkParse).use(remarkGfm).use(remarkMath);
 
@@ -271,7 +326,7 @@ const noLinksResolved = async () => new Map();
 // resolveLinks looks up [[link]] targets (see wiki-links.js); without it every
 // link is drawn as broken.
 export async function renderMarkdown(body, { title, resolveLinks = noLinksResolved }) {
-  const file = await processor.process({ value: body, data: { title, resolveLinks } });
+  const file = await processor.process({ value: convertLatexDelimiters(body), data: { title, resolveLinks } });
   return {
     html: String(file),
     plainText: file.data.plainText ?? '',
