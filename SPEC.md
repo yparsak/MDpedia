@@ -151,7 +151,12 @@ Create the database and user as the MariaDB admin (full statements in [db/README
 ### 5.3 Application
 
 ```bash
-cp .env.example .env            # set DB_PASSWORD and SESSION_SECRET (openssl rand -hex 32)
+curl -fsSL https://raw.githubusercontent.com/yparsak/MDpedia/main/install.sh -o /tmp/install.sh
+bash /tmp/install.sh
+```
+
+```bash
+# Modify /HOME$/src/MDpedia/.env
 chmod 600 .env
 mkdir -p /srv/MDpedia-data/docs /srv/MDpedia-data/staging   # DOCS_DIR and STAGING_DIR, writable by the app user
 make env-check
@@ -159,7 +164,9 @@ make install
 make migrate-status
 make migrate                    # takes a dump first, then applies 000 to 012
 make admin                      # creates the admin; run again to reset the password
-make start
+
+./mdpedia start                 # Runs in the background {start, stop or status}
+                                # Or use "make start" instead.
 ```
 
 Optional starting category tree: copy `db/seed/categories_seed.example.sql` to `db/seed/categories_seed.sql`, edit it, then `make seed-categories`.
