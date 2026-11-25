@@ -1,4 +1,4 @@
-// Copy buttons for slugs (roadmap Phase 5): any element with a data-copy
+// Copy buttons for slugs: any element with a data-copy
 // attribute copies that text to the clipboard when clicked. The site runs over
 // plain HTTP on the LAN, where navigator.clipboard does not exist, so a hidden
 // textarea and execCommand are the fallback.

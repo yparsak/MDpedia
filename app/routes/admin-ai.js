@@ -26,7 +26,7 @@ function describe(err) {
   return null;
 }
 
-// The AI Lab and the connection test (roadmap Phase 6). The Lab runs the
+// The AI Lab and the connection test. The Lab runs the
 // configured model over a doc and shows what came back. Nothing is saved: no
 // file, no row, no job. It uses the same provider as the queue, so its calls
 // count against the daily cap.

@@ -1,4 +1,4 @@
--- Phase 6: AI extraction (brainstorm 5.5, 5.12). Five tables and the provenance columns.
+-- Phase 6: AI extraction. Five tables and the provenance columns.
 --
 -- jobs                      the queue. One row per AI job; attempts counts every
 --                           claim, so a run interrupted by a crash counts too.

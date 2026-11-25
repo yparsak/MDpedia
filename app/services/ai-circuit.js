@@ -1,4 +1,4 @@
-// The circuit breaker (brainstorm 5.5): after AI_CIRCUIT_BREAKER_FAILURES provider
+// The circuit breaker: after AI_CIRCUIT_BREAKER_FAILURES provider
 // failures in a row the queue pauses and stays paused until the admin resumes it,
 // so a wrong key or a provider outage cannot burn through the queue. The state is
 // one row in `ai_state`, so it survives a restart and the admin pages can read it.

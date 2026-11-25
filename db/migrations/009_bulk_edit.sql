@@ -1,4 +1,4 @@
--- Phase 9: bulk AI edit (brainstorm 5.19, roadmap Phase 9).
+-- Phase 9: bulk AI edit.
 --
 -- edit_batches       one row per bulk edit: the instruction, the scope it was run
 --                    over (JSON text, for the record), the prompt version, and the

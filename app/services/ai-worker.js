@@ -1,4 +1,4 @@
-// The ingest worker (brainstorm 5.5): a polling loop in the web server's own
+// The ingest worker: a polling loop in the web server's own
 // process that runs AI jobs from the queue. It enforces the safety limits:
 //   - at most AI_CONCURRENCY jobs at a time, each claimed atomically
 //   - AI_MAX_ATTEMPTS tries per job, with exponential backoff, for transient

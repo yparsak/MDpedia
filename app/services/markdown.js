@@ -1,4 +1,4 @@
-// The rendering pipeline (brainstorm 5.8, 5.16, section 7). Markdown in, sanitized
+// The rendering pipeline. Markdown in, sanitized
 // HTML and a plain-text copy out. Stages, in order:
 //   parse (CommonMark, GFM, math)  ->  plain text  ->  raw HTML and images made inert
 //   ->  to HTML  ->  sanitize  ->  [[wiki links]]  ->  title de-dup, heading ids,
@@ -24,7 +24,7 @@ import { toString as mdastToString } from 'mdast-util-to-string';
 const TOC_MIN_HEADINGS = 4;
 const SAFE_LINK_SCHEMES = ['http', 'https', 'mailto'];
 
-// [[target]] and [[target|display text]] (brainstorm 5.9). A target longer than
+// [[target]] and [[target|display text]]. A target longer than
 // LINK_TARGET_MAX, or past the first MAX_LINK_TARGETS different ones in a doc,
 // is drawn as broken and not recorded, so one doc cannot flood doc_links.
 const WIKI_LINK = /\[\[([^[\]|\n]*)(?:\|([^[\]\n]*))?\]\]/g;
@@ -149,7 +149,7 @@ function rehypeToc() {
   };
 }
 
-// External links get rel="noopener noreferrer" (brainstorm 5.16).
+// External links get rel="noopener noreferrer".
 function rehypeExternalLinks() {
   return (tree) => {
     visit(tree, 'element', (node) => {
@@ -181,7 +181,7 @@ function splitWikiLinks(value) {
 
 // A link to a published doc shows its title unless the author gave display text.
 // Anything else is drawn as a marked, dead span: it never reveals the title of a
-// doc that is unpublished (brainstorm 5.10), and it is not an anchor.
+// doc that is unpublished, and it is not an anchor.
 function wikiLinkElement({ target, display }, doc) {
   if (doc?.published) {
     return element('a', { className: ['wikilink'], href: `/doc?id=${doc.id}` }, [text(display || doc.title)]);
@@ -230,7 +230,7 @@ function rehypeWikiLinks() {
 
 // trust stays off. throwOnError false shows a bad equation as an error instead
 // of failing the page, and maxExpand/maxSize stop a hostile macro from hanging
-// the server (brainstorm 5.8). strict "ignore" keeps KaTeX from writing warnings
+// the server. strict "ignore" keeps KaTeX from writing warnings
 // to the console.
 const katexOptions = { throwOnError: false, strict: 'ignore', trust: false, maxExpand: 1000, maxSize: 20, errorColor: '#b00020' };
 

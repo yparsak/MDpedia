@@ -15,7 +15,7 @@ const NOTICES = {
 const ATTENTION_LABELS = { invalid: 'Needs attention', missing: 'Missing' };
 const STAGED_LABELS = { processing: 'AI refreshing keywords', ready: 'Ready to approve', failed: 'Keyword refresh failed' };
 
-// The Attention page (roadmap Phase 8): every doc in a problem state with the
+// The Attention page: every doc in a problem state with the
 // reason, files the scan rejected, staged replacements, and the rescan and cleanup buttons.
 export function adminAttentionRouter({ pool, config, needAdmin }) {
   const router = Router();

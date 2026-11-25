@@ -1,4 +1,4 @@
-// The admin account. One admin in v1 (brainstorm section 7), but the table is a
+// The admin account. One admin in v1, but the table is a
 // normal users table so a second factor or a second admin does not need a rewrite.
 
 export const USERNAME_PATTERN = /^[a-z0-9._-]{3,64}$/;

@@ -1,4 +1,4 @@
--- Starting category tree (roadmap Phase 3). Copy this file to
+-- Starting category tree. Copy this file to
 -- db/seed/categories_seed.sql, edit it to your taste, then run
 -- `make seed-categories`. It can be run again: a category that already exists
 -- (same slug under the same parent) is skipped.

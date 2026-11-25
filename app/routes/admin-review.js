@@ -43,7 +43,7 @@ const str = (value) => (typeof value === 'string' ? value : '');
 // A repeated form field arrives as a string, or as an array when there are several.
 const idsFrom = (value) => [...new Set([value].flat().map((v) => parseId(str(v))).filter((id) => id !== null))];
 
-// The review gate (roadmap Phase 7): the queue of docs awaiting review, the review
+// The review gate: the queue of docs awaiting review, the review
 // screen where the admin edits what the AI produced and approves, and bulk approval.
 export function adminReviewRouter({ pool, config, needAdmin }) {
   const router = Router();
@@ -261,7 +261,7 @@ export function adminReviewRouter({ pool, config, needAdmin }) {
   return router;
 }
 
-// Template rows are built field by field (brainstorm 5.7).
+// Template rows are built field by field.
 function summaryRow(d) {
   return { id: d.id, title: d.title, slug: d.slug };
 }

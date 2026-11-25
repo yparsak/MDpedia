@@ -1,4 +1,4 @@
-// Runs the AI over one doc and stores the result (roadmap Phase 6). The file is
+// Runs the AI over one doc and stores the result. The file is
 // canonical, so the front matter is written first (search terms, the summary
 // unless the admin edited it, and the `ai:` provenance block) and then the
 // database follows in one transaction. The title, slug, id and published flag are

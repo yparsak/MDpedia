@@ -1,4 +1,4 @@
-// Vector search over published docs (roadmap Phase 11): what is embedded, how a
+// Vector search over published docs: what is embedded, how a
 // document's vector is stored, how much of the wiki has a current vector, and the
 // nearest-neighbour search the lab and compare pages run.
 //

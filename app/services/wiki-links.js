@@ -1,4 +1,4 @@
-// Wiki links between docs (brainstorm 5.9). The HTML of a doc is rendered once
+// Wiki links between docs. The HTML of a doc is rendered once
 // and stored, so a [[link]] is drawn as it stands at that moment: a working
 // anchor when the target is published, a marked dead span otherwise. When the
 // target is published, unpublished or retitled, the docs that link to it are

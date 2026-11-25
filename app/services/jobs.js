@@ -1,4 +1,4 @@
-// The job queue (brainstorm 5.5): the `jobs` table and the few state changes the
+// The job queue: the `jobs` table and the few state changes the
 // worker and the Jobs page make. Claiming is one conditional UPDATE, so a job is
 // never run twice. `attempts` is counted when a job is claimed, which is also
 // what makes a run interrupted by a crash count as an attempt.

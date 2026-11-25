@@ -1,4 +1,4 @@
-// Maintenance jobs (roadmap Phase 10, brainstorm 5.5 and section 7): the pruning
+// Maintenance jobs: the pruning
 // that keeps the tables from growing for ever. Each task records one row in
 // maintenance_runs, so the maintenance page can show when it last ran and how
 // many rows it removed. The scheduler runs everything at start and every six

@@ -1,4 +1,4 @@
--- Phase 3: the category tree and the doc-to-category junction (brainstorm 5.4).
+-- Phase 3: the category tree and the doc-to-category junction.
 -- An adjacency list, at most three levels deep (the app enforces the depth).
 -- Slugs are unique among siblings. The unique key below covers every level but
 -- the top, since NULL parent_ids never collide in MariaDB; the app checks the

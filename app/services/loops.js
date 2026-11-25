@@ -1,5 +1,5 @@
-// Heartbeats for the background loops, so /healthz can say "alive" (brainstorm
-// 5.17). A loop registers with the longest silence it may have, and beats every
+// Heartbeats for the background loops, so /healthz can say "alive".
+// A loop registers with the longest silence it may have, and beats every
 // time it wakes up. A loop that was never started (the AI worker when the AI is
 // not configured) is simply not registered, so it cannot make the check fail.
 

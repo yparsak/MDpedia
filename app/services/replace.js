@@ -1,5 +1,5 @@
-// Replacing a published doc without readers seeing a half-finished version
-// (brainstorm 5.10, roadmap Phase 8). The upload goes to staging as
+// Replacing a published doc without readers seeing a half-finished version.
+// The upload goes to staging as
 // STAGING_DIR/replace-<id>.md, built from the live doc's front matter and the new
 // body, so the app keeps the front matter and the old version stays live. If the AI
 // is configured a `replace` job refreshes the staged keywords (and the summary,
@@ -161,7 +161,7 @@ export async function approveStaged(pool, config, doc, expectedHash) {
   const summary = cleanLine(merged.summary).slice(0, SUMMARY_MAX) || null;
   const aiChanged = Boolean(merged.ai) && JSON.stringify(merged.ai) !== JSON.stringify(live.data.ai);
 
-  // File first, then the row (brainstorm 5.10).
+  // File first, then the row.
   await swapIntoPlace(config, doc.slug, serializeFrontMatter(merged, staged.body), hash);
   const stat = await statDocFile(config, doc.slug);
 

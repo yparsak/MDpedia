@@ -1,8 +1,8 @@
-// The embedding adapter (roadmap 5a point 9): the one place that turns text into
+// The embedding adapter: the one place that turns text into
 // vectors. The lab, the compare page and the embed worker call embed(texts, kind)
 // and know nothing about the runtime, so the provider can change without touching
-// them. Only `transformersjs` exists; `ollama` and `api` are roadmap contingencies
-// (11e, 11F) that would be added to ADAPTERS.
+// them. Only `transformersjs` exists; `ollama` and `api` are possible later additions
+// to ADAPTERS.
 //
 // transformersjs: one worker thread (embed-thread.js) holds the model, loaded
 // once on the first request and reused. The model downloads on that first use.

@@ -1,4 +1,4 @@
--- Phase 4: keyword search (brainstorm 5.1, 5.15). Three tables.
+-- Phase 4: keyword search. Three tables.
 --
 -- doc_terms     the hand-typed (later AI-written) search metadata of a doc:
 --               keywords with a weight of 1 to 3, key phrases, synonyms and
@@ -6,7 +6,7 @@
 -- search_log    one row per search a reader typed, and the doc they opened from
 --               the results. No IP address and no session id, on purpose.
 -- search_daily  the same searches counted per day, so the 30-day miss rate
---               (brainstorm 5.1) survives the log being pruned by age.
+-- survives the log being pruned by age.
 
 CREATE TABLE IF NOT EXISTS doc_terms (
   doc_id INT UNSIGNED NOT NULL,

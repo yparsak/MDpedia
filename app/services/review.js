@@ -1,4 +1,4 @@
-// The approval gate (brainstorm 5.10, roadmap Phase 7). Nothing reaches readers
+// The approval gate. Nothing reaches readers
 // until the admin approves it: approving writes the categories and the `published`
 // flag to the front matter and publishes the doc. This module holds the pending
 // category proposals, the exceptions that hold a doc back from bulk approval, and

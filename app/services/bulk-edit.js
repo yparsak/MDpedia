@@ -1,4 +1,4 @@
-// Bulk AI edit (roadmap Phase 9). An instruction and a scope (a category with its
+// Bulk AI edit. An instruction and a scope (a category with its
 // subcategories, chosen documents, or both) become a batch: one `edit` job per doc
 // on the Phase 6 queue. Each result is a staged version (Phase 8), so nothing goes
 // live until the admin approves it, and approving uses the Phase 8 swap.

@@ -1,4 +1,4 @@
--- Phase 11a: vector search lab (roadmap 5a). Needs MariaDB 11.7 or later (the native VECTOR type);
+-- Phase 11a: vector search lab. Needs MariaDB 11.7 or later (the native VECTOR type);
 -- MariaDB 11.8 LTS is the target.
 --
 -- doc_vectors   one row per document (no chunking): the embedding of a short text built from the

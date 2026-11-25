@@ -1,4 +1,4 @@
-// The compare page's engine (roadmap 11c): the Phase 4 test set scored two ways,
+// The compare page's engine: the Phase 4 test set scored two ways,
 // keyword search (the same search readers use) and vector search, with the same
 // "expected doc in the top 3" measure as the evaluation page. Nothing is logged
 // or stored. Vector search here is the exact scan, so the score does not depend

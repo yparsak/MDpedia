@@ -68,4 +68,4 @@ Installation, configuration, maintenance and architecture are all covered in the
 
 ## Status
 
-MDpedia is feature-complete for its first version. Planned improvements, such as images, version history and HTTPS, are tracked in **[TODO_LIST.md](TODO_LIST.md)**.
+MDpedia is feature-complete for its first version. Planned improvements, such as images, version history and HTTPS, are on the maintainer's list.

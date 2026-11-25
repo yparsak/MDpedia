@@ -1,5 +1,5 @@
-// Categories: the tree, its editing rules and the reader-side counts
-// (brainstorm 5.4). An adjacency list in `categories`, at most three levels deep.
+// Categories: the tree, its editing rules and the reader-side counts.
+// An adjacency list in `categories`, at most three levels deep.
 // The URL path is derived from the slugs on every request, never stored, so a
 // rename or move changes no file and no row besides the category itself.
 //

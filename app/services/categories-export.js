@@ -1,4 +1,4 @@
-// categories.yaml in the data directory (brainstorm 5.4): the tree lives only in
+// categories.yaml in the data directory: the tree lives only in
 // the database, so every change writes a copy with the ids, which is what the
 // doc front matter refers to. It goes into every backup.
 //

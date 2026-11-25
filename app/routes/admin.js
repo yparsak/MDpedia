@@ -200,7 +200,7 @@ export function adminRouter({ pool, config, version, embedder = null }) {
     const status = await getStatus(pool);
     const healthy = status.db === 'ok' && status.schema === 'ok';
 
-    // Built field by field: request objects never go into render options (brainstorm 5.7).
+    // Built field by field: request objects never go into render options.
     res.status(healthy ? 200 : 503).render('status', {
       title: 'Wiki status',
       version,

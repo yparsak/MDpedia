@@ -1,4 +1,4 @@
-// Pure helpers for vector search (roadmap 5a): the text that is embedded for a
+// Pure helpers for vector search: the text that is embedded for a
 // document, the hash that says whether it changed, the prefix rule and the
 // literal MariaDB reads a vector from. No imports from the app, so they can be
 // tested without a database.

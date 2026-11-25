@@ -1,4 +1,4 @@
-// JSON lines to standard output, collected by journald (brainstorm 5.17).
+// JSON lines to standard output, collected by journald.
 // No log files, so the SD card is not written to.
 
 function write(level, msg, fields) {

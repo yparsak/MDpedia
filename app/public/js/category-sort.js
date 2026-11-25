@@ -1,4 +1,4 @@
-// Drag-and-drop reordering for the category tree (roadmap Phase 10, optional).
+// Drag-and-drop reordering for the category tree (optional).
 // Progressive enhancement: the Up and Down buttons keep working without this
 // file, and if SortableJS cannot be loaded nothing changes. Each list holds the
 // siblings of one parent, so a drag can only reorder within its own level.

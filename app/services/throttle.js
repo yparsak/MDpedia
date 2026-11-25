@@ -1,4 +1,4 @@
-// Login throttle (brainstorm section 7): N failures per 15 minutes per key
+// Login throttle: N failures per 15 minutes per key
 // (the client IP), then that key is blocked for 15 minutes. There is no hard
 // lockout of the account, because that would let anyone on the LAN lock the
 // admin out. Each repeated failure also adds a growing delay instead.

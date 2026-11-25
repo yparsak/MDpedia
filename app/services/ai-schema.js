@@ -1,4 +1,4 @@
-// Validates the AI's reply (brainstorm 5.12). The reply is untrusted: it is
+// Validates the AI's reply. The reply is untrusted: it is
 // parsed as JSON, checked against a zod schema, cleaned to plain text, capped,
 // and then checked against the live category tree. Fields the schema does not
 // name (a slug, a published flag, anything) are dropped, so the AI can only ever

@@ -1,4 +1,4 @@
-// The safeguards on an AI edit (roadmap Phase 9). The AI may only add: this checks
+// The safeguards on an AI edit. The AI may only add: this checks
 // that every line of the original is still in the proposed text, word for word and in
 // the same order, so anything it reworded, moved or deleted is refused. The proposal also
 // goes through the checks an upload gets (no null byte, valid UTF-8, the size cap), and

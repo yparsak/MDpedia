@@ -1,5 +1,5 @@
 // /healthz is 200 only when the database answers and every started background
-// loop is alive, and it says nothing else (brainstorm 5.17).
+// loop is alive, and it says nothing else.
 
 import { test, after } from 'node:test';
 import assert from 'node:assert/strict';

@@ -1,5 +1,5 @@
 // A short list of passwords that are common or that someone would guess for
-// this site (brainstorm 5.11: "rejected if on a short list of common passwords").
+// this site.
 // Compared lower-case, so only lower-case entries are listed. It is a guard
 // against the obvious, not a strength meter.
 

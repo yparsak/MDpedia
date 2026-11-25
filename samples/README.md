@@ -1,6 +1,6 @@
 # Test fixtures
 
-Every file here exists to make one checklist item in `roadmap.md` provable.
+Every file here exists to make one manual test item provable.
 They are inputs for manual UI testing, not an automated suite: you upload them
 through the admin pages in the phase that names them.
 
@@ -17,7 +17,7 @@ stops being broken turns its phase test into a test of nothing.
 | `02-math.md` | Inline and display KaTeX, math in lists and blockquotes, escaped `\$5` currency, and a malformed expression that must not take the page down (`throwOnError: false`). |
 | `03-hostile.md` | The sanitizer. Script tags, event handlers, `javascript:`/`data:`/`vbscript:` links, images, iframes, forms, style injection, KaTeX expansion abuse, and a prompt-injection paragraph aimed at the Phase 6 extractor. Nothing may execute; the doc must be flagged as containing raw HTML. |
 | `04-bad-encoding.md` | Rejected as invalid UTF-8. Contains lone continuation bytes, a truncated sequence, an overlong encoding. |
-| `04b-null-byte.md` | Rejected for a NUL byte. Not named in the roadmap; split out because "invalid UTF-8" and "contains a null byte" are two separate checks in the upload validator. |
+| `04b-null-byte.md` | Rejected for a NUL byte. Split out because "invalid UTF-8" and "contains a null byte" are two separate checks in the upload validator. |
 | `05-oversize.md` | Rejected for exceeding `MAX_UPLOAD_BYTES`. |
 | `06-duplicate-slug.md` | Rejected as a taken slug. Upload **after** `01-plain.md` — it carries the same title and the same explicit slug. |
 
@@ -38,7 +38,7 @@ and `02-math.md`; replace its queries with your own 30 to 50 as your content gro
 | `10-links-a.md` | `[[slug]]` and `[[slug\|display text]]`, a self-link, a typo'd target, target normalization (case and whitespace), and that `[[links]]` inside code spans and fenced blocks are **not** parsed. |
 | `11-links-b.md` | Backlinks in both directions, so "what links here" has entries. |
 | `12-links-c.md` | A forward reference to a doc that does not exist yet, plus a permanently broken link. |
-| `13-links-d.md` | Not in the original roadmap list. The target of C's forward reference, so the "starts working when its target is published" test has a concrete file. Upload it only after confirming C's link renders as broken. |
+| `13-links-d.md` | The target of C's forward reference, so the "starts working when its target is published" test has a concrete file. Upload it only after confirming C's link renders as broken. |
 
 ## Phase 6: AI extraction
 
@@ -51,7 +51,7 @@ No new files. The existing ones cover the checklist:
 
 ## Phase 7: Review and bulk import
 
-`20-bulk/` holds the 12 documents the roadmap calls for:
+`20-bulk/` holds the 12 documents used to exercise bulk import:
 
 - `01-derivatives.md` — `categories: [math/calculus]`, matches the seeded tree. Files directly; AI category assignment is skipped, keyword extraction still runs.
 - `02-integrals.md` — two matching categories, so primary and "also in" are both exercised.
@@ -98,4 +98,4 @@ would not reliably give: altered text, a failed self-check, a slow batch. See th
 ## Not generated yet
 
 The Phase 4 test set grows with your content: the example file holds a handful of queries against
-the Phase 2 samples, not the 30 to 50 the roadmap asks you to write.
+the Phase 2 samples, not the 30 to 50 you should eventually write.

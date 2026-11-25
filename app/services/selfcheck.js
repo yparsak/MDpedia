@@ -1,4 +1,4 @@
-// Startup self-check (roadmap section 1, point 5). Prints clear messages and
+// Startup self-check. Prints clear messages and
 // never stops the app: a database that is down or behind is shown on the status
 // page, not a reason to crash.
 
@@ -39,7 +39,7 @@ export async function runSelfCheck(pool, config) {
       lines.push(
         size === '2'
           ? { level: 'ok', text: 'innodb_ft_min_token_size = 2' }
-          : { level: 'warn', text: `innodb_ft_min_token_size = ${size ?? 'unknown'}, must be 2 before Phase 2 (brainstorm 5.2)` },
+          : { level: 'warn', text: `innodb_ft_min_token_size = ${size ?? 'unknown'}, must be 2 before Phase 2` },
       );
     } catch {
       lines.push({ level: 'warn', text: 'innodb_ft_min_token_size: could not be read' });

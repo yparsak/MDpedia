@@ -1,4 +1,4 @@
-// The `categories:` line of an uploaded file (brainstorm 5.4, roadmap Phase 7).
+// The `categories:` line of an uploaded file.
 // A value that names a category in the tree by its path (`math/calculus`, the
 // slugs joined with slashes, case ignored) is honoured. Anything else becomes a
 // proposal for the admin to accept, rename or reject: a file never creates a

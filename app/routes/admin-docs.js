@@ -326,7 +326,7 @@ export function adminDocsRouter({ pool, config, needAdmin }) {
   return router;
 }
 
-// Template rows are built field by field (brainstorm 5.7).
+// Template rows are built field by field.
 function docView(d) {
   return {
     id: d.id,

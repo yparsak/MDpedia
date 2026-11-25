@@ -10,7 +10,7 @@ const NOTICES = {
   busy: { kind: 'warn', text: 'Maintenance is already running. Reload this page in a moment.' },
 };
 
-// Maintenance page (roadmap Phase 10): the pruning tasks with their last run
+// Maintenance page: the pruning tasks with their last run
 // and what they removed, a button to run them now, and the backup status.
 export function adminMaintenanceRouter({ pool, config, needAdmin }) {
   const router = Router();

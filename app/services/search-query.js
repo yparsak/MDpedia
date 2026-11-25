@@ -1,5 +1,5 @@
-// Turning what a reader typed into search terms, and the SQL that finds them
-// (brainstorm 5.15). Pure functions with no imports, so they can be tested
+// Turning what a reader typed into search terms, and the SQL that finds them.
+// Pure functions with no imports, so they can be tested
 // without a database.
 //
 // Operator characters never reach SQL: a term is made only of letters and

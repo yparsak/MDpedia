@@ -1,4 +1,4 @@
-// The worker thread that runs the embedding model (roadmap 5a point 5). Embedding
+// The worker thread that runs the embedding model. Embedding
 // is CPU work that would freeze every page of the web server while it ran, so it
 // lives here, started by embed-provider.js. Not imported by anything else.
 //

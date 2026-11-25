@@ -1,4 +1,4 @@
-// The AI provider adapter (brainstorm 5.6). One interface, OpenAI-compatible
+// The AI provider adapter. One interface, OpenAI-compatible
 // Chat Completions over fetch, configured only by AI_PROVIDER, AI_BASE_URL,
 // AI_API_KEY and AI_MODEL, so changing provider is a change to .env.
 //

@@ -1,4 +1,4 @@
--- Phase 5: wiki links (brainstorm 5.9). One table.
+-- Phase 5: wiki links. One table.
 --
 -- doc_links     which `[[slug]]` targets each doc contains. target_slug is the
 --               normalised text the author typed (trimmed, lowercase), so a

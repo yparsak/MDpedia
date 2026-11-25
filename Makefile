@@ -1,7 +1,7 @@
 # MDpedia: project tasks.
 #
 # Every target that touches the database reads credentials from .env, the same
-# file the app reads (brainstorm 5.13). Nothing here changes the schema on its
+# file the app reads (one source of truth for settings). Nothing here changes the schema on its
 # own: `make migrate` runs the numbered SQL files, which record themselves in
 # schema_migrations. The app never migrates itself.
 #
@@ -134,7 +134,7 @@ db-check: env-check
 	  || echo "schema version: schema_migrations not present (run make migrate)"
 	@$(DB) -N -B -e "SHOW VARIABLES LIKE 'innodb_ft_min_token_size';" \
 	  | awk '{ if ($$2 == 2) print "innodb_ft_min_token_size = 2 (correct)"; \
-	          else print "WARNING: innodb_ft_min_token_size = " $$2 ". Must be 2 before Phase 2 creates the FULLTEXT index (brainstorm 5.2)." }'
+	          else print "WARNING: innodb_ft_min_token_size = " $$2 ". Must be 2 before Phase 2 creates the FULLTEXT index" }'
 
 db-shell: env-check
 	$(DB) "$$DB_NAME"
@@ -238,8 +238,12 @@ mock-ai:
 
 smoke: health
 	@echo
-	@echo "Section 4 smoke test. Run these by hand in the browser after every phase:"
-	@sed -n '/^## 4\. Smoke test/,/^## 5\./p' roadmap.md | grep -E '^[0-9]+\.' || echo "  (checklist not found in roadmap.md)"
+	@echo "Smoke test. Run these by hand in the browser after every change:"
+	@echo "  1. Log in at /admin."
+	@echo "  2. Upload a document from samples/ and check the preview."
+	@echo "  3. Approve and publish it."
+	@echo "  4. Open it as an anonymous reader, then search for a word from its title."
+	@echo "  5. Check the dashboard for warnings."
 
 # ----------------------------------------------------------------------- checks
 
@@ -281,7 +285,7 @@ samples-verify:
 	else echo "  FAIL 04-injection.md lost the injected paragraph"; fail=1; fi; \
 	exit $$fail
 
-# Brainstorm 5.7: raw output is allowed only for sanitized document HTML and
+# Raw output is allowed only for sanitized document HTML and
 # for includes. The allowlist is scripts/lib/raw-tags.js; this fails on any other
 # `<%-` and lists the allowed ones to review before every release.
 check-raw-tags:

@@ -1,4 +1,4 @@
--- Phase 10: operations (roadmap Phase 10, brainstorm sections 6, 7 and 5.5).
+-- Phase 10: operations.
 --
 -- backup_status      one row (id 1): what scripts/backup.sh last did. last_success_at
 --                    is set only after a verified copy; a failed attempt changes

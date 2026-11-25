@@ -1,8 +1,8 @@
 -- Phase 2: documents. One row per Markdown file in DOCS_DIR. The file is
--- canonical and this table is a derived index (brainstorm 5.3).
+-- canonical and this table is a derived index.
 --
 -- The FULLTEXT index needs innodb_ft_min_token_size = 2 to be in effect when it
--- is created (brainstorm 5.2). Run `make db-check` first and fix the server
+-- is created. Run `make db-check` first and fix the server
 -- setting if it warns, or the index has to be dropped and rebuilt later.
 -- Search itself arrives in Phase 4.
 

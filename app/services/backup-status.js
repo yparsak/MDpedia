@@ -1,4 +1,4 @@
-// How old the last backup is (brainstorm section 6). scripts/backup.sh records a
+// How old the last backup is. scripts/backup.sh records a
 // success in the backup_status table and in DATA_DIR/last-backup.txt on the Pi,
 // both only after a verified copy. The newer of the two wins, so a backup whose
 // table update failed still counts. A failed attempt never moves the age.

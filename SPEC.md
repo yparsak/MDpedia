@@ -1,6 +1,6 @@
 # MDpedia technical specification
 
-This is the technical reference for MDpedia: what it is made of, how to install it, how to run and maintain it, and how it works internally. For a general introduction, see [README.md](README.md). Planned work is in [TODO_LIST.md](TODO_LIST.md).
+This is the technical reference for MDpedia: what it is made of, how to install it, how to run and maintain it, and how it works internally. For a general introduction, see [README.md](README.md). Planned improvements (images, version history, HTTPS) are kept in the maintainer's own notes.
 
 Related documents:
 
@@ -73,7 +73,7 @@ Everything runs in one Node process:
 - Rate limits on search, page views and admin writes.
 - Audit log of admin actions. The search log stores no IP address or session.
 - Documents are sent to the configured AI provider, so do not store secrets or personal data in them.
-- Traffic is plain HTTP by design for now (see [TODO_LIST.md](TODO_LIST.md)). Run it on a trusted network or behind a TLS-terminating reverse proxy, and set `TRUST_PROXY` and `COOKIE_SECURE` accordingly.
+- Traffic is plain HTTP by design for now; HTTPS is a planned improvement. Run it on a trusted network or behind a TLS-terminating reverse proxy, and set `TRUST_PROXY` and `COOKIE_SECURE` accordingly.
 
 ## 3. Data model
 
@@ -139,85 +139,93 @@ The category tree is an adjacency list, at most three levels deep, and is mirror
 
 ### 5.1 Requirements
 
-- Linux host (any small server works), Node.js 20 or later, `make`
-- MariaDB 10.5 or later; **11.7 or later** for migrations 011 and 012 (vectors)
-- A dedicated database and user, and a data directory on one filesystem for the docs and staging folders
-- Optional: an OpenAI-compatible AI endpoint; an external drive for backups; outbound access to Hugging Face once, for the embedding model
+| Needed | Version | Notes |
+|---|---|---|
+| Linux host | any small server | The scripts support Debian, Ubuntu and Raspberry Pi OS. Other distributions: see 5.5. |
+| Node.js and npm | 20 or later | The distribution's own `nodejs` package is often too old. |
+| MariaDB server | 10.5 or later; **11.7 or later** for migrations 011 and 012 (vectors) | Ubuntu 24.04 ships 10.11, which is too old. |
+| `make`, a C++ compiler, `curl`, `tar`, `openssl`, `zstd` | any | `build-essential` provides the first two. |
+| Disk | one filesystem for the docs and staging folders | Default `/srv/MDpedia-data`. |
 
-### 5.2 Database
+Optional: an OpenAI-compatible AI endpoint; an external drive for backups; outbound access to Hugging Face once, for the embedding model.
 
-Create the database and user as the MariaDB admin (full statements in [db/README.md](db/README.md)), and confirm `innodb_ft_min_token_size=2`. If `DB_HOST` is `localhost`, create the user for `@'localhost'` as well.
+### 5.2 Quick install (Debian, Ubuntu, Raspberry Pi OS)
 
-### 5.3 Application
-
-Download and install:
+Run as your normal user, not as root. The scripts use `sudo` where needed.
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/yparsak/MDpedia/main/install.sh -o /tmp/install.sh
-bash /tmp/install.sh
+curl -fsSL https://raw.githubusercontent.com/yparsak/MDpedia/main/install.sh -o install.sh
+bash install.sh --install-prereqs
 ```
 
-Create Database
+`install.sh` checks the requirements and, because of `--install-prereqs`, installs what is missing: build tools from your distribution, Node.js 22 from NodeSource, and MariaDB 11.8 from the MariaDB Foundation repository. It lists what it will install and asks first. Without `--install-prereqs` it only reports what is missing and stops.
+
+It then downloads the latest release to `~/src/MDpedia`, installs the Node dependencies, creates `/srv/MDpedia-data/docs` and `/srv/MDpedia-data/staging`, and writes `.env` (mode 600) with a generated database password and session secret. Last, it offers to run `scripts/setup-db.sh` (5.3). Options: `--data-dir DIR` to store documents elsewhere, `--yes` to answer yes to every question, `--help`.
+
+Then finish in the app directory:
 
 ```bash
-CREATE DATABASE IF NOT EXISTS MDpedia      CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-CREATE DATABASE IF NOT EXISTS MDpedia_test CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-
-CREATE USER IF NOT EXISTS 'MDpedia'@'localhost';
-ALTER USER 'MDpedia'@'localhost' IDENTIFIED BY 'YOUR_DB_PASSWORD';
-CREATE USER IF NOT EXISTS 'MDpedia'@'127.0.0.1';
-ALTER USER 'MDpedia'@'127.0.0.1' IDENTIFIED BY 'YOUR_DB_PASSWORD';
-
-GRANT ALL PRIVILEGES ON MDpedia.*      TO 'MDpedia'@'localhost';
-GRANT ALL PRIVILEGES ON MDpedia_test.* TO 'MDpedia'@'localhost';
-GRANT ALL PRIVILEGES ON MDpedia.*      TO 'MDpedia'@'127.0.0.1';
-GRANT ALL PRIVILEGES ON MDpedia_test.* TO 'MDpedia'@'127.0.0.1';
-FLUSH PRIVILEGES;
-EXIT;
-```
-
-Modify dotenv
-
-```bash
-# Modify /$HOME/src/MDpedia/.env
-HOST=YOUR_HOST_NAME or IP
-PORT=3000
-
-DB_HOST=127.0.0.1
-DB_PORT=3306
-DB_NAME=MDpedia
-DB_USER=MDpedia
-DB_PASSWORD=YOUR_DB_PASSWORD
-
-SESSION_SECRET=YOUR_SESSION_SECRET
-AI_API_KEY=YOUR_API_KEY
-```
-
-```bash
-chmod 600 /$HOME/src/MDpedia/.env
-```
-
-Install
-
-```bash
-mkdir -p /srv/MDpedia-data/docs /srv/MDpedia-data/staging   # DOCS_DIR and STAGING_DIR, writable by the app user
-make env-check
-make install
-make migrate-status
+cd ~/src/MDpedia
+make env-check                  # .env is complete
 make migrate                    # takes a dump first, then applies 000 to 012
 make admin                      # creates the admin; run again to reset the password
-
-./mdpedia start                 # Runs in the background {start, stop or status}
-                                # Or use "make start" instead.
+./mdpedia start                 # runs in the background: start, stop, status, logs
 ```
-
-Optional starting category tree: copy `db/seed/categories_seed.example.sql` to `db/seed/categories_seed.sql`, edit it, then `make seed-categories`.
 
 Open `http://<host>:3000/admin` and log in. New uploads are saved unpublished: open the document, check the preview, and publish.
 
+Optional starting category tree: copy `db/seed/categories_seed.example.sql` to `db/seed/categories_seed.sql`, edit it, then `make seed-categories`. Optional AI extraction: set `AI_API_KEY` and `AI_MODEL` in `.env` (and `AI_BASE_URL` if not using the default), then restart.
+
+### 5.3 Database
+
+`scripts/setup-db.sh` creates the database and user from the values in `.env`. If you skipped the offer at the end of `install.sh`, run it yourself:
+
+```bash
+cd ~/src/MDpedia
+sudo scripts/setup-db.sh
+```
+
+It connects as the MariaDB root account over the local socket and:
+
+1. starts MariaDB and enables it at boot;
+2. sets `innodb_ft_min_token_size=2` (the InnoDB default is 3) in `99-mdpedia.cnf` in MariaDB's config directory and restarts MariaDB, if it is not 2 already. This must be true before `make migrate` creates the FULLTEXT index;
+3. creates the `DB_NAME` database (utf8mb4, `utf8mb4_unicode_ci`) and the `DB_USER` account for both `localhost` and `127.0.0.1`, which MariaDB treats as separate accounts, with the password from `.env`;
+4. logs in as that account to prove it works, and warns if the server is older than 11.7.
+
+It is safe to run again: it creates only what is missing and resets the password to the one in `.env`. Add `--with-test-db` to also create `<DB_NAME>_test` for `make test` (needed only on a development machine). It sets up a database on the same machine only; for a remote server, use the statements in [db/README.md](db/README.md).
+
 ### 5.4 Run as a service
 
-`deploy/wiki.service` is a hardened systemd unit (non-root user, `NoNewPrivileges`, `ProtectSystem=strict`, write access only to the data directory, restart on failure). `deploy/journald-wiki.conf` caps log size and `deploy/firewall.sh` restricts the port. Edit the paths, then follow section 1 of [docs/OPERATIONS.md](docs/OPERATIONS.md).
+`./mdpedia start` is enough to try MDpedia. For a server, use systemd. `deploy/wiki.service` is a hardened unit (non-root user, `NoNewPrivileges`, `ProtectSystem=strict`, write access only to the data directory, restart on failure). `deploy/journald-wiki.conf` caps log size and `deploy/firewall.sh` restricts the port. Edit the paths, then follow section 1 of [docs/OPERATIONS.md](docs/OPERATIONS.md).
+
+### 5.5 Manual install (other distributions)
+
+Do by hand what the scripts do:
+
+1. Install Node.js 20 or later with npm, MariaDB 11.7 or later, `make`, a C++ compiler, `curl`, `openssl` and `zstd`.
+2. Download and unpack the latest release from GitHub into a directory you own, and run `npm install --omit=dev` there (`npm ci --omit=dev` if the release has a `package-lock.json`).
+3. `cp .env.example .env && chmod 600 .env`, then set at least:
+
+   ```bash
+   DB_PASSWORD=<openssl rand -hex 24>
+   SESSION_SECRET=<openssl rand -hex 32>
+   DOCS_DIR=/srv/MDpedia-data/docs        # with STAGING_DIR and DATA_DIR beside it
+   ```
+
+4. Create the data directories, writable by the app user: `sudo mkdir -p /srv/MDpedia-data/docs /srv/MDpedia-data/staging && sudo chown -R "$USER" /srv/MDpedia-data`.
+5. Create the database and user as the MariaDB admin (statements in [db/README.md](db/README.md)), and set `innodb_ft_min_token_size=2` under `[mysqld]` in a MariaDB config file. Restart MariaDB and confirm with `SHOW VARIABLES LIKE 'innodb_ft_min_token_size'`.
+6. Continue with `make env-check` in 5.2.
+
+### 5.6 Troubleshooting
+
+| Symptom | Cause and fix |
+|---|---|
+| `install.sh` says a requirement is missing | Rerun with `--install-prereqs`, or install it yourself (5.5). |
+| `install.sh` says MariaDB is older than 11.7 | Upgrade MariaDB (it is not done for you), then rerun. |
+| "Application directory found" | `~/src/MDpedia` exists. Rename or remove it to reinstall. A failed install removes its own directory. |
+| `make db-check` warns `innodb_ft_min_token_size` | Run `sudo scripts/setup-db.sh`, **before** `make migrate`. If the tables already exist, rebuild their FULLTEXT indexes after the change. |
+| `make migrate` fails on 011 or 012 | MariaDB is older than 11.7. |
+| Cannot connect as the app user | Run `sudo scripts/setup-db.sh` again; it resets the user and password from `.env`. |
 
 ## 6. Configuration
 
@@ -257,7 +265,7 @@ Run `make` with no argument for the full list.
 1. Take a backup and check the dashboard shows it is fresh.
 2. On the development machine run `make lint`, `make test`, `make check-raw-tags` and `make audit`.
 3. Copy the new version into place, keeping `.env` and the old directory until the smoke test passes.
-4. `npm ci --omit=dev`.
+4. `npm ci --omit=dev` (or `npm install --omit=dev` if there is no lock file).
 5. `make migrate-status`, then `make migrate`. The app never migrates itself; `/admin/status` names any missing file.
 6. `sudo systemctl restart wiki`, then `make health`.
 7. Work through `make smoke` in a browser.
@@ -284,7 +292,7 @@ To clear all documents while keeping the admin and category tree, follow [purge_
 - `make test-quick` runs without a database; database tests are skipped.
 - `test/xss-corpus.test.js` is a fixed list of hostile inputs that must render inert. Add every real bug to it.
 - `make check-raw-tags` and `make samples-verify` guard the templates and the fixtures.
-- `make smoke` prints the browser checklist that is re-run after each change; `roadmap.md` has the per-phase checks.
+- `make smoke` prints the browser checklist that is re-run after each change.
 
 ## 9. Known limitations
 
@@ -295,4 +303,4 @@ To clear all documents while keeping the admin and category tree, follow [purge_
 - Documents over `MAX_UPLOAD_BYTES` (256 KB by default) are refused rather than split for the AI.
 - Backups are manual.
 
-See [TODO_LIST.md](TODO_LIST.md) for how each is planned to be addressed.
+Some of these, such as images, version history and HTTPS, are planned improvements.

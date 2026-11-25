@@ -1,5 +1,5 @@
-// The guard that keeps database tests away from the project database
-// (brainstorm 5.18): a name must end in _test, and nothing connects before that is checked.
+// The guard that keeps database tests away from the project database:
+// a name must end in _test, and nothing connects before that is checked.
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';

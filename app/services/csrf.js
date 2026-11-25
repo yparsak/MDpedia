@@ -1,4 +1,4 @@
-// CSRF tokens (brainstorm 5.11). Two kinds, because the login form exists
+// CSRF tokens. Two kinds, because the login form exists
 // before there is a session:
 //   - logged-in forms carry the token stored with the session row;
 //   - the login form carries a signed, time-limited token (HMAC with the

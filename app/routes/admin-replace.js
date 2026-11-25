@@ -20,7 +20,7 @@ const STAGED_LABELS = { processing: 'AI refreshing keywords', ready: 'Ready to a
 const parseId = (value) => (/^\d{1,10}$/.test(String(value)) ? Number(value) : null);
 const str = (value) => (typeof value === 'string' ? value : '');
 
-// Replace a doc (roadmap Phase 8): upload a new version to staging, wait for the
+// Replace a doc: upload a new version to staging, wait for the
 // keywords to be refreshed, then approve to swap it in. Readers see the old
 // version until the swap.
 export function adminReplaceRouter({ pool, config, needAdmin }) {

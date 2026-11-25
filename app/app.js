@@ -25,7 +25,7 @@ export function createApp({ config, pool, loops = null, embedder = null }) {
 
   app.use(requestLogger);
 
-  // Baseline security headers (brainstorm 5.11, section 7). Scripts are strict:
+  // Baseline security headers. Scripts are strict:
   // 'self' only, no inline script and no inline event handler (script-src-attr
   // stays at helmet's 'none'). KaTeX emits style attributes, so style
   // attributes are allowed; style elements and stylesheets stay 'self' only.

@@ -1,4 +1,4 @@
-// The search metadata of one doc (brainstorm 5.2, 5.12): keywords with a weight
+// The search metadata of one doc: keywords with a weight
 // of 1 to 3, key phrases, synonyms and questions. In Phase 4 the admin types
 // them; the AI fills the same lists in Phase 6. They are plain text, never
 // markup, and are written to the front matter first and then to `doc_terms`, the

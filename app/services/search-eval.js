@@ -1,4 +1,4 @@
-// The evaluation page's engine (roadmap Phase 4, brainstorm 5.1, 5.18): read a
+// The evaluation page's engine: read a
 // test set of queries with the doc each should find, run them through the same
 // search the readers use, and report the zero-result rate and whether the
 // expected doc is in the top 3. Nothing is logged or stored: this measures the

@@ -1,4 +1,4 @@
-// The extraction prompt (brainstorm 5.12, section 7). The document is untrusted
+// The extraction prompt. The document is untrusted
 // input to a language model, so the instructions say so and the document is
 // fenced. That lowers the risk; it does not remove it, which is why the reply is
 // validated against a schema and the category tree, stored as plain text and

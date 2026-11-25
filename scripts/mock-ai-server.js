@@ -1,4 +1,4 @@
-// A stand-in AI provider for testing the bulk AI edit (roadmap Phase 9) without a real
+// A stand-in AI provider for testing the bulk AI edit without a real
 // model. It speaks the same OpenAI-compatible Chat Completions the app uses, so you
 // point the app at it with .env and nothing in the app changes:
 //

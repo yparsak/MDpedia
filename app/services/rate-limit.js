@@ -1,5 +1,5 @@
 // A fixed-window request limiter, one counter per key (the client IP). Used for
-// search (brainstorm section 7): N requests per window, then the key is refused
+// search: N requests per window, then the key is refused
 // until the window ends. Nothing is stored beyond the counters, so no IP address
 // ever reaches the database or the search log.
 //

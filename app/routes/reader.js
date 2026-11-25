@@ -19,7 +19,7 @@ const HOME_PAGE_SIZE = 50;
 
 // Public pages. Only published docs are ever served. A doc that is unpublished,
 // unknown or not even a valid address gets the one generic 404, so a reader
-// cannot probe which ids or slugs exist (brainstorm 5.10). The same goes for a
+// cannot probe which ids or slugs exist. The same goes for a
 // category with no published doc anywhere under it.
 export function readerRouter({ pool }) {
   const router = Router();
@@ -79,7 +79,7 @@ export function readerRouter({ pool }) {
   // /wiki/<category path>/<slug>, or just /wiki/<slug> for a doc with no
   // category. The doc is found by its slug alone (the last segment): the
   // category part is only cosmetic, and a stale or wrong one is redirected to
-  // the current path (brainstorm 5.4).
+  // the current path.
   router.get('/wiki/*path', revalidate, async (req, res) => {
     const segments = req.params.path.map((segment) => segment.toLowerCase());
     const slug = segments[segments.length - 1];
@@ -89,7 +89,7 @@ export function readerRouter({ pool }) {
   });
 
   // The permanent link. It always redirects to the doc's current path; the id
-  // never changes even if the title or the categories do (brainstorm 5.9).
+  // never changes even if the title or the categories do.
   router.get('/doc', revalidate, async (req, res) => {
     const id = typeof req.query.id === 'string' && /^\d{1,10}$/.test(req.query.id) ? Number(req.query.id) : null;
     const doc = id === null ? null : await getPublishedById(pool, id);
@@ -97,7 +97,7 @@ export function readerRouter({ pool }) {
     await serveDoc(req, res, doc, null);
   });
 
-  // Folder-style browsing (brainstorm 5.4): the direct subcategories with the
+  // Folder-style browsing: the direct subcategories with the
   // published count of their whole subtree, then the docs filed directly here.
   router.get('/category/*path', revalidate, async (req, res) => {
     const tree = await loadTree(pool);

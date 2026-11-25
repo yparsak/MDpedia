@@ -1,4 +1,4 @@
-// One place that reads, validates and types every .env value (brainstorm 5.13).
+// One place that reads, validates and types every .env value.
 // Environment values are strings: COOKIE_SECURE=false is the string "false",
 // which is truthy, so booleans are parsed explicitly and anything else is rejected.
 

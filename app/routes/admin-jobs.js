@@ -23,7 +23,7 @@ const FILTERS = [{ key: 'all', label: 'All', status: null }, ...JOB_STATUSES.map
 
 const parseId = (value) => (/^\d{1,10}$/.test(String(value)) ? Number(value) : null);
 
-// The AI job queue (roadmap Phase 6): what is waiting, running, done and failed,
+// The AI job queue: what is waiting, running, done and failed,
 // with retry and dismiss, and the resume button for the circuit breaker.
 export function adminJobsRouter({ pool, config, needAdmin }) {
   const router = Router();
@@ -79,7 +79,7 @@ export function adminJobsRouter({ pool, config, needAdmin }) {
   return router;
 }
 
-// Template rows are built field by field (brainstorm 5.7).
+// Template rows are built field by field.
 function jobView(j) {
   return {
     id: j.id,

@@ -1,5 +1,5 @@
 // Link data for a list of docs (home, category and search pages): the
-// canonical URL through the primary category (brainstorm 5.4), the title, the
+// canonical URL through the primary category, the title, the
 // summary and the primary category's label for the breadcrumb line.
 
 import { docPath, pathLabel } from './categories.js';

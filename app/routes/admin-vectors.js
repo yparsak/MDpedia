@@ -23,7 +23,7 @@ const TABLE_MISSING = 'The doc_vectors table is missing. Run make migrate (it ne
 const str = (value) => (typeof value === 'string' ? value : '');
 const isMissingTable = (err) => err.code === 'ER_NO_SUCH_TABLE';
 
-// Vector search pages (roadmap Phase 11, admin only): the lab (11a, 11b) where a
+// Vector search pages (admin only): the lab (11a, 11b) where a
 // query shows its nearest documents, the SQL, the query plan and the time, and the
 // compare page (11c) that sets keyword results beside vector results and scores the
 // Phase 4 test set both ways. Nothing here is reachable by readers.

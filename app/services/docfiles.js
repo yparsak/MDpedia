@@ -1,4 +1,4 @@
-// Document files in DOCS_DIR, one `<slug>.md` per doc (roadmap Phase 2). The
+// Document files in DOCS_DIR, one `<slug>.md` per doc. The
 // file name comes from the validated slug, never from an upload's file name.
 //
 // Every write goes through the staging directory: write a temp file, read it
@@ -116,7 +116,7 @@ export async function removeStagedFile(config, docId) {
   await fs.rm(stagedPath(config, docId), { force: true });
 }
 
-// The swap (brainstorm 5.10): the new text is written to staging and checked, then
+// The swap: the new text is written to staging and checked, then
 // renamed over the live file, so a reader of the file sees the old version or the new one.
 export async function swapIntoPlace(config, slug, text, expectedHash) {
   const target = docPath(config, slug);

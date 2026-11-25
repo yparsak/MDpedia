@@ -1,4 +1,4 @@
-// The embedding worker (roadmap 5a point 8): a polling loop in the web server's
+// The embedding worker: a polling loop in the web server's
 // own process that runs the 'embed' jobs of the shared queue, one at a time. The
 // model itself runs in a worker thread (embed-provider.js), so a "Rebuild all
 // vectors" run does not freeze the pages.

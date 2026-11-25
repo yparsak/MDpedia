@@ -1,4 +1,4 @@
-// Bulk import (brainstorm 5.16, roadmap Phase 7). Many files at once, with no
+// Bulk import. Many files at once, with no
 // per-file review: each one goes through the same checks and the same path as a
 // single upload (ingestUpload), except that a taken slug gets a numeric suffix
 // instead of being refused, and a file that fails is skipped without stopping the

@@ -1,4 +1,4 @@
-// Queues embedding jobs (roadmap 5a point 8). They live in the same `jobs` table
+// Queues embedding jobs. They live in the same `jobs` table
 // as the AI jobs, with type 'embed', but a separate worker runs them (embed-worker.js):
 // embedding is local, so it does not use the AI daily cap or the circuit breaker.
 //

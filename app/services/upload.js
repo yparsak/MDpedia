@@ -1,4 +1,4 @@
-// The single-upload path (brainstorm 5.16, section 7). Every check runs before
+// The single-upload path. Every check runs before
 // anything is written, and each failure names its real reason so the admin can
 // fix it: wrong extension, size, null byte, encoding, front matter, title, slug.
 //
@@ -58,7 +58,7 @@ export function validateUploadFile({ buffer, originalName, maxBytes }) {
   return { ok: true, text };
 }
 
-// Precedence (brainstorm 5.16): the form, then front matter, then the first H1, then the file name.
+// Precedence: the form, then front matter, then the first H1, then the file name.
 export function resolveTitle({ formTitle, frontMatterTitle, heading, originalName }) {
   const fileName = path.basename(String(originalName ?? '')).replace(/\.md$/i, '');
   return (
@@ -85,7 +85,7 @@ export function resolveSlug({ formSlug, frontMatterSlug, title }) {
 
 const slugTakenResult = (slug) => fail(409, `The slug "${slug}" is already taken. Slugs are permanent and unique, so choose another.`);
 
-// The first free "base-2", "base-3", ... (bulk import, brainstorm 5.16). The base is
+// The first free "base-2", "base-3", ... (bulk import). The base is
 // shortened if the suffix would push the slug over SLUG_MAX. `tried` holds slugs
 // that looked free but were refused when written.
 async function freeSlug(pool, base, tried) {

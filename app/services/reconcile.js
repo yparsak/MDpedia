@@ -1,4 +1,4 @@
-// The reconciliation scan (brainstorm 5.3, 5.5, roadmap Phase 8). The file is
+// The reconciliation scan. The file is
 // canonical ("file wins"): a doc edited over SSH is re-read and the row follows.
 // It runs at startup, every RECONCILE_INTERVAL_MINUTES, and from the "Rescan now"
 // button. Size and modified time are compared first and a file is read only when

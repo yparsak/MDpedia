@@ -1,4 +1,4 @@
-// The daily cap on AI calls (brainstorm 5.5). Every HTTP call counts, retries and
+// The daily cap on AI calls. Every HTTP call counts, retries and
 // repair tries included. The day is the database server's date, so it resets at
 // that server's midnight.
 

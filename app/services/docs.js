@@ -1,4 +1,4 @@
-// Documents: the `docs` table and the lifecycle around it (brainstorm 5.10).
+// Documents: the `docs` table and the lifecycle around it.
 // The file is canonical and the table is a derived index, so every change writes
 // the file first (see docfiles.js) and then updates the row.
 //
@@ -166,7 +166,7 @@ export async function createDoc(
 // ----------------------------------------------------------------- changing
 
 // Publish, re-publish and unpublish. The front matter flag changes first so a
-// database rebuild keeps the state (brainstorm 5.10). Docs that link here are
+// database rebuild keeps the state. Docs that link here are
 // rendered again, since their links to this one work only while it is published.
 export async function setPublished(pool, config, doc, published) {
   await updateDocFile(config, doc.slug, (data) => ({ ...data, published }));

@@ -1,5 +1,5 @@
 // Password hashing with Node's built-in scrypt, so there is no native module to
-// build on the Pi (brainstorm 5.11). Stored format:
+// build on the Pi. Stored format:
 //   scrypt$N$r$p$<salt base64>$<hash base64>
 // The parameters are stored with the hash, so they can be raised later without
 // breaking existing passwords.
@@ -57,7 +57,7 @@ export async function verifyAgainstDummy(password) {
 }
 
 // Returns a list of problems in plain words; an empty list means acceptable.
-// Length counts characters, not bytes. No complexity rules (brainstorm 5.11).
+// Length counts characters, not bytes. No complexity rules.
 export function passwordProblems(password, { minLength, username } = {}) {
   const problems = [];
   const length = Array.from(password).length;

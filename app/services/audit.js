@@ -1,4 +1,4 @@
-// The audit log (brainstorm section 7). Append-only: this module only inserts
+// The audit log. Append-only: this module only inserts
 // and reads, and nothing in the app updates rows. The only delete is the age
 // limit in pruneAudit, run by the maintenance job (Phase 10).
 //

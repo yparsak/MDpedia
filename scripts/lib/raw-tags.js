@@ -1,4 +1,4 @@
-// The raw-output tags (`<%-`) in the templates (brainstorm 5.7). EJS escapes
+// The raw-output tags (`<%-`) in the templates. EJS escapes
 // `<%=` and does not escape `<%-`, so every raw tag is a place where markup can
 // reach the page unescaped. Only two uses are allowed:
 //

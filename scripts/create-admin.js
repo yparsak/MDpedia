@@ -1,5 +1,5 @@
 // Creates the first admin, or resets the password of the existing one
-// (brainstorm section 7, admin recovery). Run it with `make admin`, on the Pi.
+// (admin recovery). Run it with `make admin`, on the Pi.
 //
 //   make admin                       prompts for the password
 //   node scripts/create-admin.js --username=yucel

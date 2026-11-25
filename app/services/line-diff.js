@@ -1,4 +1,4 @@
-// A side-by-side line diff for the bulk edit review screen (roadmap Phase 9).
+// A side-by-side line diff for the bulk edit review screen.
 // The AI's edits are additions, so most diffs are runs of added lines between
 // unchanged ones, but a hand edit can change anything, so this is a general
 // longest-common-subsequence diff on lines. Long unchanged stretches are folded.

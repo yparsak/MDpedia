@@ -11,7 +11,7 @@ import { cleanLine } from '../services/text.js';
 
 const parseId = (value) => (typeof value === 'string' && /^\d{1,18}$/.test(value) ? Number(value) : null);
 
-// Public search (brainstorm 5.15). Only published docs can be found; the visibility
+// Public search. Only published docs can be found; the visibility
 // rule is in the SQL. Readers need no JavaScript: the form is a plain GET, and a
 // result link goes through /search/click, which records the click and redirects.
 export function searchRouter({ pool, config }) {

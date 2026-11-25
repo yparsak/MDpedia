@@ -1,4 +1,4 @@
-// What the AI suggested for a doc and nobody has accepted yet (brainstorm 5.4):
+// What the AI suggested for a doc and nobody has accepted yet:
 // an ordered list of existing categories and proposals for new ones. Both are
 // only stored. doc_categories changes when the admin changes it, and a proposal
 // becomes a category only when the admin accepts it (the review screens arrive

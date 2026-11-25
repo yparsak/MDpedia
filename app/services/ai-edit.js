@@ -1,4 +1,4 @@
-// Runs one bulk edit job (roadmap Phase 9): the AI adds content to one doc, the app
+// Runs one bulk edit job: the AI adds content to one doc, the app
 // checks the result, and a result that passes becomes a staged version (Phase 8).
 // The live doc is never touched. A refused result marks the doc "needs attention"
 // with the reason; it is not an error, so the job itself finishes.

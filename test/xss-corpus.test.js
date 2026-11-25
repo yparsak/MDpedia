@@ -1,4 +1,4 @@
-// The XSS corpus (brainstorm 5.18, section 7): a fixed list of hostile inputs
+// The XSS corpus: a fixed list of hostile inputs
 // that must come out of the rendering pipeline inert. Add every real bug found.
 // Each entry runs through the same renderMarkdown the app uses, and the HTML is
 // then checked for anything a browser could execute or fetch.
@@ -158,8 +158,8 @@ for (const [name, markdown] of BOMBS) {
   });
 }
 
-// Summaries, keywords and questions come from an AI model, which is untrusted
-// (brainstorm section 7). They are stored as plain text and escaped on output.
+// Summaries, keywords and questions come from an AI model, which is untrusted.
+// They are stored as plain text and escaped on output.
 const HOSTILE_TEXT = [
   '<script>alert(1)</script>A summary',
   'Fine text <img src=x onerror=alert(1)> more',

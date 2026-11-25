@@ -1,5 +1,5 @@
 // Database reachability and schema version. The app never changes the schema
-// itself (roadmap section 2): it only compares schema_migrations with the
+// itself: it only compares schema_migrations with the
 // migrations it expects and says which SQL file is missing.
 
 const PROBE_TIMEOUT_MS = 5000;

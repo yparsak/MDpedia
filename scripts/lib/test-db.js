@@ -1,4 +1,4 @@
-// The guard for tests that need a real database (brainstorm 5.18). They run
+// The guard for tests that need a real database. They run
 // only against a database whose name ends in `_test`, and they never read the
 // project's DB_NAME: the name comes from TEST_DB_NAME, which `make test` sets
 // to the test database. `make test-db-reset` builds that database from the

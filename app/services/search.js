@@ -1,4 +1,4 @@
-// Keyword search over published docs (brainstorm 5.15). search-query.js builds
+// Keyword search over published docs. search-query.js builds
 // one query that returns a row for every (doc, term, source) match; this module
 // scores those rows with the source weights from .env, requires every term
 // first (AND), falls back to any term (OR) when that gives too few, and orders

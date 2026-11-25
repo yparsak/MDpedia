@@ -1,4 +1,4 @@
-// Front matter (brainstorm 5.3, section 7). The file is canonical, so this is
+// Front matter. The file is canonical, so this is
 // parsed with a safe YAML loader (core schema: no custom types, no objects built
 // from tags) and a low alias limit, since the file can also be edited by hand.
 //

@@ -39,7 +39,7 @@ const NOTICES = {
 const parseId = (value) => (/^\d{1,10}$/.test(String(value)) ? Number(value) : null);
 const str = (value) => (typeof value === 'string' ? value : '');
 
-// Bulk AI edit (roadmap Phase 9): an instruction and a scope, a dry run that says what
+// Bulk AI edit: an instruction and a scope, a dry run that says what
 // it will cost, one job per doc, and a review of each proposal. Nothing goes live until approved.
 export function adminEditRouter({ pool, config, needAdmin }) {
   const router = Router();

@@ -1,4 +1,4 @@
--- Phase 8: replace and reconcile (brainstorm 5.3, 5.5, 5.10).
+-- Phase 8: replace and reconcile.
 --
 -- docs.file_size, file_mtime_ms
 --                      the size and modified time of the file as the reconciliation

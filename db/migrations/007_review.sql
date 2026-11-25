@@ -1,4 +1,4 @@
--- Phase 7: review and bulk import (brainstorm 5.4, 5.10, 5.16).
+-- Phase 7: review and bulk import.
 --
 -- docs.approved_at          when the admin approved the doc on the review screen
 --                           (or through bulk approve). NULL until then.

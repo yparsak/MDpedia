@@ -1,4 +1,4 @@
-// Which categories a doc is filed under (brainstorm 5.4). Up to three, in order:
+// Which categories a doc is filed under. Up to three, in order:
 // the first is the primary one (breadcrumb and canonical URL). The file is
 // canonical, so a change writes the front matter `categories` list of ids first
 // and then replaces the rows, the same order docs.js uses.
@@ -61,7 +61,7 @@ export async function setDocCategories(pool, config, doc, ids) {
   }
 }
 
-// Published docs filed directly in one category, alphabetical (brainstorm 5.4).
+// Published docs filed directly in one category, alphabetical.
 export async function listPublishedInCategory(pool, categoryId, { limit, offset }) {
   const [[{ total }]] = await pool.query(
     `SELECT COUNT(*) AS total FROM doc_categories dc JOIN docs d ON d.id = dc.doc_id

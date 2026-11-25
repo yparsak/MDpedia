@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Firewall rules for MDpedia with ufw (roadmap Phase 10, brainstorm section 7):
+# Firewall rules for MDpedia with ufw:
 # allow SSH and the wiki's PORT from the LAN only, deny everything else inbound.
 #
 # By default it only PRINTS the commands, so you can read them first.

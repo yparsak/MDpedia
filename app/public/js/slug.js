@@ -1,4 +1,4 @@
-// Slug rules (brainstorm 5.16), shared by the server and the upload form so the
+// Slug rules, shared by the server and the upload form so the
 // live preview and the saved slug can never disagree. No imports: it must run
 // unchanged in the browser and in Node.
 

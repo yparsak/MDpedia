@@ -10,7 +10,7 @@ const RECENT_BATCHES = 10;
 
 const parseId = (value) => (/^\d{1,10}$/.test(String(value)) ? Number(value) : null);
 
-// Bulk import (roadmap Phase 7): choose many files, confirm what it will cost, import,
+// Bulk import: choose many files, confirm what it will cost, import,
 // read the report. Approval comes afterwards, on the review queue.
 export function adminImportRouter({ pool, config, needAdmin }) {
   const router = Router();
@@ -116,7 +116,7 @@ export function adminImportRouter({ pool, config, needAdmin }) {
   return router;
 }
 
-// Template rows are built field by field (brainstorm 5.7).
+// Template rows are built field by field.
 function batchView(b) {
   return {
     id: b.id,

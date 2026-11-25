@@ -16,7 +16,7 @@ export function noStore(req, res, next) {
 
 // Looks the session up and exposes it. Never rejects: whether a session is
 // required is decided by requireAdmin. The template locals are set field by
-// field, so a request object never reaches a template (brainstorm 5.7).
+// field, so a request object never reaches a template.
 export function loadAdminSession({ pool, config }) {
   return async (req, res, next) => {
     req.sessionToken = parseCookies(req.headers.cookie)[COOKIE_NAME];

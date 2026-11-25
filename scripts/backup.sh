@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# MDpedia backup (roadmap Phase 10, brainstorm section 6). Run it by hand with the
+# MDpedia backup. Run it by hand with the
 # external drive plugged in:   make backup     or     bash scripts/backup.sh
 #
 # Copies three things to BACKUP_TARGET/mdpedia/<YYYYMMDD-HHMMSS>/ :

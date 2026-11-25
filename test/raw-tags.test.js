@@ -1,5 +1,5 @@
 // Every raw-output tag in the templates is an include or a reviewed use of
-// sanitized document HTML (brainstorm 5.7). A new `<%-` fails this test until
+// sanitized document HTML. A new `<%-` fails this test until
 // it is reviewed and added to scripts/lib/raw-tags.js.
 
 import { test } from 'node:test';

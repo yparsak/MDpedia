@@ -1,4 +1,4 @@
-// Admin sessions stored in MariaDB (roadmap Phase 1).
+// Admin sessions stored in MariaDB.
 //   - The cookie holds a random token. The table holds only its SHA-256, so a
 //     leaked database does not contain working session cookies.
 //   - Two limits: idle (last_seen_at) and absolute (expires_at). Both are

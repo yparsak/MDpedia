@@ -1,11 +1,11 @@
-// The search log and its reports (brainstorm 5.1). Each search a reader types is
+// The search log and its reports. Each search a reader types is
 // one row (query text, result count, time) plus a count in `search_daily`; the
 // first doc they open from the results is added to the row. There is no IP
 // address and no session id anywhere in these tables, because anonymous queries
 // can hold sensitive text.
 //
 // The miss rate is the share of searches that ended with no click (zero results
-// included). It is a quality indicator, not a gate (brainstorm 5.1).
+// included). It is a quality indicator, not a gate.
 
 import { log, errorFields } from '../logger.js';
 

@@ -1,7 +1,7 @@
 import mysql from 'mysql2/promise';
 
 // A pool reconnects on its own: after MariaDB restarts, the next query opens a
-// fresh connection, so the app recovers without a restart (roadmap Phase 0).
+// fresh connection, so the app recovers without a restart.
 export function createPool(dbConfig) {
   return mysql.createPool({
     host: dbConfig.host,

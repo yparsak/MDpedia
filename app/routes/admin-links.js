@@ -4,7 +4,7 @@ import { listUnresolved } from '../services/wiki-links.js';
 
 const LINK_PAGE_SIZE = 50;
 
-// The unresolved-links report (roadmap Phase 5): every [[link]] in any doc whose
+// The unresolved-links report: every [[link]] in any doc whose
 // target is not a published doc, so a typo in a slug is caught after an upload.
 export function adminLinksRouter({ pool, needAdmin }) {
   const router = Router();

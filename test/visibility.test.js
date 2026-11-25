@@ -1,4 +1,4 @@
-// Visibility (brainstorm 5.18, 5.10): a document that is unpublished, awaiting
+// Visibility: a document that is unpublished, awaiting
 // review, still processing, uploaded or failed must not appear anywhere readers
 // can look (search, category pages, counts, the home list, backlinks, /doc?id=,
 // the doc page itself), and must get the very same 404 as an id or slug that

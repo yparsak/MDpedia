@@ -5,7 +5,7 @@ import { recordAudit } from '../services/audit.js';
 import { EVAL_MAX_BYTES, EVAL_MAX_QUERIES, TOP_N, parseTestSet, runEvaluation } from '../services/search-eval.js';
 import { MIN_SEARCHES, MISS_THRESHOLD, searchReport } from '../services/search-log.js';
 
-// The admin side of search (roadmap Phase 4): the miss report built from the
+// The admin side of search: the miss report built from the
 // search log, and the evaluation page that runs a test set against the index.
 export function adminSearchRouter({ pool, config, needAdmin }) {
   const router = Router();
